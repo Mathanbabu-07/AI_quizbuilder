@@ -45,7 +45,7 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
 
   return (
     <motion.section
-      className="relative z-10 flex min-h-dvh items-center justify-center px-5 py-24 sm:px-8"
+      className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-24 sm:px-8"
       initial={{ opacity: 0, y: 42, scale: 0.97, filter: "blur(14px)" }}
       animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: 28, scale: 0.98, filter: "blur(10px)" }}
@@ -80,7 +80,7 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
           <p className="font-display text-xs font-extrabold uppercase text-cyan-100/76 drop-shadow-[0_0_16px_rgba(103,232,249,0.38)]">
             BUILD WITH AI
           </p>
-          <h2 className="mt-4 font-display text-4xl font-extrabold text-white sm:text-5xl md:text-6xl">
+          <h2 className="mt-4 font-display text-3xl font-extrabold text-white sm:text-5xl md:text-6xl">
             Generate a Quiz
           </h2>
           {errorMessage ? (
@@ -111,13 +111,13 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
         </motion.div>
 
         <motion.div
-          className="mt-5 grid gap-5 md:grid-cols-2"
+          className="mt-5 grid gap-4 md:grid-cols-2 md:gap-5"
           variants={{
             hidden: { opacity: 0, y: 22 },
             visible: { opacity: 1, y: 0, transition: { duration: 0.58, ease: [0.22, 1, 0.36, 1] } }
           }}
         >
-          <div className="grid gap-5">
+          <div className="grid gap-4 md:gap-5">
             <AnimatedSelect
               label="Number of Questions"
               value={questions}
@@ -134,7 +134,7 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
             />
           </div>
 
-          <div className="grid gap-5">
+          <div className="grid gap-4 md:gap-5">
             <AnimatedInput
               label="Time Per Question"
               value={timePerQuestion}

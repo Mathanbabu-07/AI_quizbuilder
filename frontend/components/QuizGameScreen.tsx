@@ -95,19 +95,19 @@ export function QuizGameScreen({ quiz, settings, onComplete }: QuizGameScreenPro
 
   return (
     <motion.section
-      className="relative z-10 flex min-h-dvh items-center justify-center px-5 py-24 sm:px-8"
+      className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-24 sm:px-8"
       initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -28, filter: "blur(10px)" }}
       transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="w-full max-w-6xl">
-        <div className="mb-7 flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div>
+        <div className="mb-6 flex flex-col items-center justify-between gap-5 sm:mb-7 sm:flex-row">
+          <div className="text-center sm:text-left">
             <p className="font-display text-xs font-extrabold uppercase text-cyan-100/72">Live quiz arena</p>
-            <h1 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-5xl">{quiz.title}</h1>
+            <h1 className="mt-2 font-display text-2xl font-extrabold text-white sm:text-4xl lg:text-5xl">{quiz.title}</h1>
           </div>
-          <div className="flex gap-4">
+          <div className="flex scale-90 gap-3 sm:scale-100 sm:gap-4">
             <CircularTimer value={questionTimeLeft} max={settings.timePerQuestion} label="Question" />
             <CircularTimer value={totalTimeLeft} max={settings.totalQuizTime * 60} label="Total" />
           </div>

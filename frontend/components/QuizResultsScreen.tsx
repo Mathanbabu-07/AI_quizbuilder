@@ -37,7 +37,7 @@ export function QuizResultsScreen({ result, onRestart }: QuizResultsScreenProps)
 
   return (
     <motion.section
-      className="relative z-10 grid min-h-dvh place-items-center px-5 py-24 sm:px-8"
+      className="relative z-10 grid min-h-dvh place-items-center px-4 py-24 sm:px-8"
       initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -28, filter: "blur(10px)" }}
@@ -68,9 +68,9 @@ export function QuizResultsScreen({ result, onRestart }: QuizResultsScreenProps)
 
         <p className="mt-8 font-display text-xs font-extrabold uppercase text-cyan-100/76">Final results</p>
         <h2 className="mt-3 font-display text-5xl font-extrabold text-white sm:text-7xl">{percentage}%</h2>
-        <p className="mx-auto mt-4 max-w-2xl font-sans text-xl font-semibold text-white/68">{analysis}</p>
+        <p className="mx-auto mt-4 max-w-2xl font-sans text-lg font-semibold leading-relaxed text-white/68 sm:text-xl">{analysis}</p>
 
-        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-3 sm:mt-9 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <AnimatedScoreCard label="Correct" value={String(correct)} icon={<CheckCircle2 className="size-5" />} tone="text-emerald-100" />
           <AnimatedScoreCard label="Wrong" value={String(wrong)} icon={<XCircle className="size-5" />} tone="text-rose-100" />
           <AnimatedScoreCard label="Avg Response" value={`${averageTime}s`} icon={<Gauge className="size-5" />} />

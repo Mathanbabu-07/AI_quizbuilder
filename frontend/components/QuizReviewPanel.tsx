@@ -14,7 +14,7 @@ type QuizReviewPanelProps = {
 export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProps) {
   return (
     <motion.section
-      className="relative z-10 flex min-h-dvh justify-center px-5 py-24 sm:px-8"
+      className="relative z-10 flex min-h-dvh justify-center px-4 py-24 sm:px-8"
       initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -28, filter: "blur(10px)" }}
@@ -23,7 +23,7 @@ export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProp
       <div className="w-full max-w-6xl">
         <div className="mb-8 text-center">
           <p className="font-display text-xs font-extrabold uppercase text-cyan-100/76">Quiz arena ready</p>
-          <h2 className="mt-3 font-display text-4xl font-extrabold text-white sm:text-6xl">{quiz.title}</h2>
+          <h2 className="mt-3 font-display text-3xl font-extrabold text-white sm:text-5xl lg:text-6xl">{quiz.title}</h2>
           <p className="mt-4 font-sans text-sm font-semibold text-white/52">
             {quiz.questions.length} questions | {settings.difficulty} | {settings.timePerQuestion}s each
           </p>
@@ -33,7 +33,7 @@ export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProp
           {quiz.questions.map((question, index) => (
             <motion.article
               key={question.question}
-              className="rounded-3xl border border-white/12 bg-white/[0.055] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 hover:border-cyan-100/28 sm:p-6"
+              className="rounded-3xl border border-white/12 bg-white/[0.055] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 hover:border-cyan-100/28 sm:p-6"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.035, duration: 0.42 }}
@@ -47,7 +47,7 @@ export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProp
                   {question.difficulty}
                 </span>
               </div>
-              <h3 className="font-sans text-lg font-bold text-white sm:text-xl">{question.question}</h3>
+              <h3 className="font-sans text-base font-semibold leading-relaxed text-white/88 sm:text-lg">{question.question}</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {question.choices.map((choice) => (
                   <div

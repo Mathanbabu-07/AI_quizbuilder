@@ -2,9 +2,22 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { BrainCircuit, CircleDot, Sparkle, Trophy } from "lucide-react";
+import { AmbientGlowLayer } from "@/components/AmbientGlowLayer";
 import { usePointerParallax } from "@/hooks/usePointerParallax";
 
-const particles = [
+type Particle = {
+  x: string;
+  y: string;
+  size: number;
+  delay: number;
+  duration: number;
+};
+
+type GlowParticle = Particle & {
+  color: string;
+};
+
+const particles: Particle[] = [
   { x: "8%", y: "18%", size: 3, delay: 0.1, duration: 8.5 },
   { x: "16%", y: "72%", size: 2, delay: 1.2, duration: 9.2 },
   { x: "24%", y: "34%", size: 4, delay: 0.6, duration: 10.4 },
@@ -32,7 +45,7 @@ const particles = [
   { x: "94%", y: "70%", size: 3, delay: 1.6, duration: 11.9 }
 ];
 
-const glowParticles = [
+const glowParticles: GlowParticle[] = [
   { x: "11%", y: "27%", size: 10, delay: 0.4, duration: 14.5, color: "bg-cyan-200/24" },
   { x: "22%", y: "82%", size: 12, delay: 1.4, duration: 15.8, color: "bg-sky-200/20" },
   { x: "36%", y: "41%", size: 14, delay: 0.9, duration: 13.4, color: "bg-cyan-100/18" },
@@ -57,15 +70,22 @@ export function AnimatedBackground() {
 
   return (
     <div className="pointer-events-none absolute inset-0 isolate overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(20,184,166,0.16),transparent_31%),linear-gradient(130deg,#050611_0%,#0a1022_42%,#120817_100%)]" />
+      <motion.div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(20,184,166,0.2),transparent_32%),radial-gradient(circle_at_82%_72%,rgba(192,132,252,0.14),transparent_32%),linear-gradient(130deg,#060812_0%,#0a1428_42%,#150a1d_100%)]"
+        animate={motionEnabled ? { filter: ["hue-rotate(0deg)", "hue-rotate(8deg)", "hue-rotate(0deg)"] } : false}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="hidden sm:block">
+        <AmbientGlowLayer />
+      </div>
 
       <motion.div
-        className="absolute -left-[16rem] top-[-18rem] h-[34rem] w-[34rem] rounded-full bg-cyan-300/24 blur-[92px]"
+        className="absolute -left-[16rem] top-[-18rem] h-[36rem] w-[36rem] rounded-full bg-cyan-300/28 blur-[92px]"
         animate={motionEnabled ? { x: parallax.x * 0.55, y: parallax.y * 0.4, scale: [1, 1.08, 1] } : false}
         transition={{ scale: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
       />
       <motion.div
-        className="absolute -right-[15rem] bottom-[-16rem] h-[36rem] w-[36rem] rounded-full bg-fuchsia-400/20 blur-[100px]"
+        className="absolute -right-[15rem] bottom-[-16rem] h-[38rem] w-[38rem] rounded-full bg-fuchsia-400/23 blur-[100px]"
         animate={motionEnabled ? { x: parallax.x * -0.45, y: parallax.y * -0.35, scale: [1, 1.1, 1] } : false}
         transition={{ scale: { duration: 9, repeat: Infinity, ease: "easeInOut" } }}
       />
@@ -76,7 +96,7 @@ export function AnimatedBackground() {
       />
 
       <motion.div
-        className="absolute inset-x-[-12%] bottom-[-18%] h-[58%] origin-bottom bg-[linear-gradient(rgba(34,211,238,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(168,85,247,0.14)_1px,transparent_1px)] bg-[size:64px_64px] opacity-35 [mask-image:linear-gradient(to_top,black,transparent_78%)]"
+        className="absolute inset-x-[-12%] bottom-[-18%] h-[58%] origin-bottom bg-[linear-gradient(rgba(34,211,238,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(168,85,247,0.16)_1px,transparent_1px)] bg-[size:64px_64px] opacity-40 [mask-image:linear-gradient(to_top,black,transparent_78%)]"
         style={{ transform: "perspective(820px) rotateX(62deg)" }}
         animate={motionEnabled ? { backgroundPosition: ["0px 0px", "64px 64px"] } : false}
         transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
@@ -107,7 +127,7 @@ export function AnimatedBackground() {
               motionEnabled
                 ? {
                     y: [0, -24, 0],
-                    opacity: [0.16, 0.86, 0.16],
+                    opacity: [0.22, 0.92, 0.22],
                     scale: [1, 1.55, 1]
                   }
                 : false
@@ -177,7 +197,8 @@ export function AnimatedBackground() {
         </motion.div>
       ))}
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_44%,rgba(3,5,12,0.72)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(5,6,17,0.08)_0%,transparent_44%,rgba(3,5,12,0.64)_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-slate-950/38 to-transparent sm:h-24" />
       <div className="absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,0.9)_1px,transparent_1px)] [background-size:100%_4px]" />
     </div>
   );
