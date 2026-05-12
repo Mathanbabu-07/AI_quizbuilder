@@ -9,7 +9,7 @@ type CreateQuizButtonProps = {
 
 export function CreateQuizButton({ onClick }: CreateQuizButtonProps) {
   return (
-    <MagneticNavButton icon={Wand2} ariaLabel="Create a quiz" onClick={onClick} compact tone="cyan">
+    <MagneticNavButton icon={Wand2} ariaLabel="Create a quiz" onClick={onClick} tone="cyan">
       Create a Quiz
     </MagneticNavButton>
   );

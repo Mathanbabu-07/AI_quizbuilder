@@ -9,18 +9,19 @@ import { PlaygroundButton } from "@/components/PlaygroundButton";
 type NavigationBarProps = {
   onCreateQuiz: () => void;
   onAbout: () => void;
+  onJoinQuiz: () => void;
 };
 
-export function NavigationBar({ onCreateQuiz, onAbout }: NavigationBarProps) {
+export function NavigationBar({ onCreateQuiz, onAbout, onJoinQuiz }: NavigationBarProps) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-4 z-30 flex items-start justify-between gap-2 px-4 sm:top-6 sm:px-8">
-      <div className="pointer-events-auto">
+    <div className="pointer-events-none absolute inset-x-0 top-4 z-30 flex items-start justify-between gap-2 px-3 sm:top-6 sm:px-8">
+      <div className="pointer-events-auto shrink-0">
         <PlaygroundButton />
       </div>
-      <div className="pointer-events-auto flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="pointer-events-auto flex min-w-0 flex-wrap justify-end gap-2 sm:flex-nowrap sm:gap-3">
         <CreateQuizButton onClick={onCreateQuiz} />
         <AboutGQButton onClick={onAbout} />
-        <MagneticNavButton icon={UsersRound} ariaLabel="Join a quiz" compact tone="emerald">
+        <MagneticNavButton icon={UsersRound} ariaLabel="Join a quiz" onClick={onJoinQuiz} compact tone="emerald">
           Join
         </MagneticNavButton>
         <MagneticNavButton icon={Settings} ariaLabel="Open settings" circular tone="fuchsia">

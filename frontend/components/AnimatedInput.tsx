@@ -14,6 +14,8 @@ type AnimatedInputProps = {
   multiline?: boolean;
   min?: number;
   max?: number;
+  action?: ReactNode;
+  helper?: ReactNode;
 };
 
 export function AnimatedInput({
@@ -26,7 +28,9 @@ export function AnimatedInput({
   type = "text",
   multiline = false,
   min,
-  max
+  max,
+  action,
+  helper
 }: AnimatedInputProps) {
   const sharedClass =
     "peer w-full border-0 bg-transparent font-sans text-base font-semibold text-white outline-none placeholder:text-white/28";
@@ -45,8 +49,11 @@ export function AnimatedInput({
           {icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="mb-2 block font-display text-[0.68rem] font-bold uppercase text-white/42 transition-colors duration-300 group-focus-within:text-cyan-100/80">
-            {label}
+          <span className="mb-2 flex items-start justify-between gap-3">
+            <span className="block font-display text-[0.68rem] font-bold uppercase text-white/42 transition-colors duration-300 group-focus-within:text-cyan-100/80">
+              {label}
+            </span>
+            {action ? <span className="shrink-0">{action}</span> : null}
           </span>
           <span className="flex items-center gap-3">
             {multiline ? (
@@ -72,6 +79,7 @@ export function AnimatedInput({
               <span className="shrink-0 font-sans text-sm font-semibold text-white/44">{suffix}</span>
             ) : null}
           </span>
+          {helper ? <span className="mt-3 block">{helper}</span> : null}
         </span>
       </span>
     </motion.label>

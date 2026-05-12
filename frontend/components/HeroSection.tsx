@@ -7,16 +7,19 @@ import { AboutGQSection } from "@/components/AboutGQSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { CreateQuizPanel } from "@/components/CreateQuizPanel";
 import { FloatingTitle } from "@/components/FloatingTitle";
+import { JoinQuizModal } from "@/components/JoinQuizModal";
 import { NavigationBar } from "@/components/NavigationBar";
 import { QuizGameScreen } from "@/components/QuizGameScreen";
 import { QuizLoadingScreen } from "@/components/QuizLoadingScreen";
 import { QuizResultsScreen } from "@/components/QuizResultsScreen";
 import { QuizReviewPanel } from "@/components/QuizReviewPanel";
+import { WaitingRoom } from "@/components/WaitingRoom";
+import { useParticipantRoom } from "@/hooks/useParticipantRoom";
 import { generateQuiz } from "@/lib/quizApi";
 import type { GeneratedQuiz, QuizResult, QuizSettings } from "@/types/quiz";
 import { CreateButton } from "@/ui/CreateButton";
 
-type Screen = "home" | "create" | "loading" | "review" | "game" | "results";
+type Screen = "home" | "create" | "loading" | "review" | "game" | "results" | "waiting";
 
 export function HeroSection() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -24,6 +27,8 @@ export function HeroSection() {
   const [settings, setSettings] = useState<QuizSettings | null>(null);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const participantRoom = useParticipantRoom();
   const aboutRef = useRef<HTMLElement | null>(null);
 
   const handleGenerate = async (nextSettings: QuizSettings) => {
@@ -64,9 +69,31 @@ export function HeroSection() {
     aboutRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const handleJoinRoom = async (roomCode: string) => {
+    const joined = await participantRoom.joinRoom(roomCode);
+    if (joined) {
+      setJoinModalOpen(false);
+      setScreen("waiting");
+    }
+    return joined;
+  };
+
+  const leaveWaitingRoom = () => {
+    participantRoom.leaveRoom();
+    setScreen("home");
+  };
+
   return (
     <div className="relative z-10 min-h-svh">
-      <NavigationBar onCreateQuiz={() => setScreen("create")} onAbout={showAbout} />
+      <NavigationBar onCreateQuiz={() => setScreen("create")} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
+
+      <JoinQuizModal
+        open={joinModalOpen}
+        isJoining={participantRoom.status === "joining"}
+        errorMessage={participantRoom.errorMessage}
+        onClose={() => setJoinModalOpen(false)}
+        onJoin={handleJoinRoom}
+      />
 
       <AnimatePresence mode="wait">
         {screen === "home" ? (
@@ -75,7 +102,7 @@ export function HeroSection() {
             exit={{ opacity: 0, y: -72, scale: 0.97, filter: "blur(16px)" }}
             transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
           >
-            <section className="flex min-h-[100svh] items-start justify-center px-4 pb-14 pt-[9.25rem] sm:min-h-svh sm:items-center sm:px-8 sm:py-24">
+            <section className="flex min-h-[100svh] items-start justify-center px-4 pb-14 pt-[11rem] sm:min-h-svh sm:items-center sm:px-8 sm:py-24">
               <motion.div
                 className="mx-auto flex w-full max-w-5xl flex-col items-center text-center"
                 variants={heroContainer}
@@ -107,6 +134,14 @@ export function HeroSection() {
           <QuizLoadingScreen key="loading" />
         ) : screen === "review" && quiz && settings ? (
           <QuizReviewPanel key="review" quiz={quiz} settings={settings} onStart={() => setScreen("game")} />
+        ) : screen === "waiting" && participantRoom.roomState && participantRoom.participantId ? (
+          <WaitingRoom
+            key="waiting"
+            room={participantRoom.roomState}
+            participantId={participantRoom.participantId}
+            onUpdateName={participantRoom.updateName}
+            onLeave={leaveWaitingRoom}
+          />
         ) : screen === "game" && quiz && settings ? (
           <QuizGameScreen
             key="game"

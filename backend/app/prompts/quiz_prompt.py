@@ -22,6 +22,9 @@ Rules:
 - Avoid duplicates and trivial wording.
 - Keep questions concise, meaningful, and factually grounded.
 - Keep choices plausible and balanced.
+- Keep each question under 140 characters when possible.
+- Keep each choice under 70 characters when possible.
+- For programming quizzes, include short code snippets only when they are necessary.
 
 Return this exact JSON shape:
 {{

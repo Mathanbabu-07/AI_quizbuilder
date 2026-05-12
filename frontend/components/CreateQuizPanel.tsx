@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, Hash, Hourglass, MessageSquareText, Timer } from "lucide-react";
-import { useState } from "react";
+import { Brain, Hash, Hourglass, MessageSquareText, Mic, Timer, Waves } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { AnimatedInput } from "@/components/AnimatedInput";
 import { AnimatedSelect } from "@/components/AnimatedSelect";
 import { FloatingGlow } from "@/components/FloatingGlow";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import type { Difficulty, QuizSettings } from "@/types/quiz";
 
 const questionOptions = Array.from({ length: 9 }, (_, index) => {
@@ -32,6 +33,26 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
   const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
   const [timePerQuestion, setTimePerQuestion] = useState("30");
   const [totalTime, setTotalTime] = useState("10");
+  const promptBaseRef = useRef("");
+  const {
+    supported,
+    isListening,
+    finalTranscript,
+    interimTranscript,
+    error: voiceError,
+    startListening,
+    stopListening
+  } = useSpeechRecognition();
+
+  useEffect(() => {
+    if (!isListening && !finalTranscript && !interimTranscript) {
+      return;
+    }
+
+    const transcript = [finalTranscript, interimTranscript].filter(Boolean).join(" ").trim();
+    const nextValue = [promptBaseRef.current, transcript].filter(Boolean).join(" ").trim();
+    setPrompt(nextValue);
+  }, [finalTranscript, interimTranscript, isListening]);
 
   const handleSubmit = () => {
     onGenerate({
@@ -42,6 +63,26 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
       totalQuizTime: Number(totalTime)
     });
   };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    promptBaseRef.current = prompt.trim();
+    startListening();
+  };
+
+  const voiceStatus = voiceError
+    ? voiceError
+    : isListening
+      ? interimTranscript
+        ? "Transcribing your quiz idea..."
+        : "Listening for your quiz prompt..."
+      : supported
+        ? "Use voice to describe the quiz you want to generate."
+        : "Voice prompting is not available in this browser.";
 
   return (
     <motion.section
@@ -107,6 +148,56 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
             placeholder="Generate a quiz about..."
             icon={<MessageSquareText className="size-4" strokeWidth={2.2} />}
             multiline
+            action={
+              <motion.button
+                type="button"
+                className={`group relative flex h-11 items-center justify-center gap-2 overflow-hidden rounded-full border px-3 text-[0.68rem] font-bold uppercase outline-none transition-colors duration-300 ${
+                  isListening
+                    ? "border-cyan-100/42 bg-cyan-100/12 text-cyan-50 shadow-[0_0_24px_rgba(103,232,249,0.24)]"
+                    : "border-white/12 bg-white/[0.045] text-white/56 hover:border-cyan-100/30 hover:text-cyan-50"
+                }`}
+                onClick={toggleListening}
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                disabled={!supported}
+                aria-label={isListening ? "Stop voice input" : "Start voice input"}
+              >
+                <span className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(103,232,249,0.24),transparent_62%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <motion.span
+                  className={`grid size-7 place-items-center rounded-full ${
+                    isListening ? "bg-cyan-100/18 text-cyan-50" : "bg-white/[0.06] text-cyan-100/80"
+                  }`}
+                  animate={isListening ? { scale: [1, 1.08, 1] } : false}
+                  transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {isListening ? <Waves className="size-3.5" strokeWidth={2.1} /> : <Mic className="size-3.5" strokeWidth={2.1} />}
+                </motion.span>
+                <span className="hidden sm:inline">{isListening ? "Listening" : "Voice"}</span>
+              </motion.button>
+            }
+            helper={
+              <div className="flex min-h-6 items-center gap-3 font-sans text-xs font-semibold text-white/48">
+                <div className="flex items-end gap-1">
+                  {[0, 1, 2].map((bar) => (
+                    <motion.span
+                      key={bar}
+                      className={`block w-1 rounded-full ${isListening ? "bg-cyan-100" : "bg-white/18"}`}
+                      animate={isListening ? { height: [6, 16 + bar * 3, 6] } : { height: 6 }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: isListening ? Infinity : 0,
+                        repeatType: "mirror",
+                        delay: bar * 0.08,
+                        ease: "easeInOut"
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className={voiceError ? "text-rose-200/86" : isListening ? "text-cyan-100/86" : ""}>
+                  {voiceStatus}
+                </span>
+              </div>
+            }
           />
         </motion.div>
 

@@ -9,7 +9,7 @@ type AboutGQButtonProps = {
 
 export function AboutGQButton({ onClick }: AboutGQButtonProps) {
   return (
-    <MagneticNavButton icon={Info} ariaLabel="About GENQUIZ" onClick={onClick} compact tone="cyan">
+    <MagneticNavButton icon={Info} ariaLabel="About GENQUIZ" onClick={onClick} tone="cyan">
       About GQ
     </MagneticNavButton>
   );

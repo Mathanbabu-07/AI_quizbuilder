@@ -1,14 +1,140 @@
-frontend/node_modules
-frontend/.next
-frontend/out
-frontend/dist
-frontend/*.tsbuildinfo
-frontend/*.log
-frontend/*.err
-backend/.venv
+# ---------------------------------------------------------------------------
+# GENQUIZ repository ignore rules
+# Stack: Next.js / React / TypeScript / Tailwind / FastAPI / Supabase / Vercel
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Environment files and secrets
+# Keep real credentials local. Commit only explicit example files if needed.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
 backend/.env
-backend/**/*.pyc
-backend/**/__pycache__
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
+
+frontend/.env.local
+frontend/.env.*.local
+!frontend/.env.example
+!frontend/.env.*.example
+
+# ---------------------------------------------------------------------------
+# Node / Next.js / React dependencies and build output
+# ---------------------------------------------------------------------------
+node_modules/
+frontend/node_modules/
+
+.next/
+frontend/.next/
+
+out/
+frontend/out/
+
+dist/
+frontend/dist/
+
+build/
+frontend/build/
+
+.turbo/
+frontend/.turbo/
+
+.vercel/
+frontend/.vercel/
+
+# Next.js / Turbopack traces, cache, diagnostics
+*.tsbuildinfo
+frontend/*.tsbuildinfo
+frontend/.next/cache/
+frontend/.next/dev/cache/
+frontend/.next/dev/logs/
+frontend/.next/trace
+frontend/.next/trace-build
+frontend/.next/diagnostics/
+
+# ---------------------------------------------------------------------------
+# Python / FastAPI virtual environments and bytecode
+# ---------------------------------------------------------------------------
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+.venv/
+venv/
+env/
+ENV/
+backend/.venv/
+backend/venv/
+backend/env/
+
+.python-version
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Logs and runtime output
+# ---------------------------------------------------------------------------
+*.log
+*.err
+*.out
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
 backend/*.log
 backend/*.err
-.env*.local
+frontend/*.log
+frontend/*.err
+
+# ---------------------------------------------------------------------------
+# Test coverage and reports
+# ---------------------------------------------------------------------------
+coverage/
+frontend/coverage/
+backend/coverage/
+playwright-report/
+test-results/
+
+# ---------------------------------------------------------------------------
+# Supabase local artifacts
+# ---------------------------------------------------------------------------
+supabase/.branches/
+supabase/.temp/
+
+# ---------------------------------------------------------------------------
+# OS files
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ---------------------------------------------------------------------------
+# IDE/editor local settings
+# ---------------------------------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# ---------------------------------------------------------------------------
+# Temporary/cache files
+# ---------------------------------------------------------------------------
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.orig
+*.pid

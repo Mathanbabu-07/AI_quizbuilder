@@ -1,4 +1,5 @@
 import asyncio
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -28,9 +29,9 @@ class OpenRouterService:
         payload = {
             "model": self.settings.openrouter_model,
             "messages": build_quiz_prompt(request),
-            "temperature": 0.55,
-            "top_p": 0.9,
-            "max_tokens": min(12000, 900 + request.question_count * 240),
+            "temperature": 0.42,
+            "top_p": 0.86,
+            "max_tokens": min(9000, 650 + request.question_count * 155),
             "response_format": {"type": "json_object"},
         }
 
@@ -42,9 +43,18 @@ class OpenRouterService:
         }
 
         last_error: Exception | None = None
-        for attempt in range(3):
+        deadline = time.monotonic() + min(120.0, max(30.0, self.settings.generation_timeout_seconds))
+
+        for attempt in range(2):
+            remaining = deadline - time.monotonic()
+            if remaining <= 1.0:
+                break
+
             try:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=15.0)) as client:
+                request_timeout = max(4.0, remaining - 0.5)
+                timeout = httpx.Timeout(request_timeout, connect=min(5.0, request_timeout))
+
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.post(OPENROUTER_CHAT_URL, json=payload, headers=headers)
                 response.raise_for_status()
                 return self._parse_response(response.json(), request)
@@ -58,7 +68,15 @@ class OpenRouterService:
             except (ValueError, KeyError, ValidationError) as exc:
                 last_error = exc
 
-            await asyncio.sleep(0.8 * (attempt + 1))
+            remaining = deadline - time.monotonic()
+            if attempt == 0 and remaining > 2.0:
+                await asyncio.sleep(min(0.6, remaining / 4))
+
+        if isinstance(last_error, httpx.TimeoutException) or (deadline - time.monotonic()) <= 1.0:
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="AI quiz generation took too long. Try fewer questions or generate again.",
+            ) from last_error
 
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

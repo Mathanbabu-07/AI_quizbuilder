@@ -7,7 +7,7 @@ export function AnimatedLogo() {
 
   return (
     <motion.div
-      className="relative z-0 mb-[-1.45rem] size-24 overflow-hidden rounded-full border border-cyan-100/22 bg-white/[0.06] shadow-[0_0_34px_rgba(103,232,249,0.32),0_0_90px_rgba(14,165,233,0.14)] backdrop-blur-md sm:mb-[-2.35rem] sm:size-40 md:mb-[-2.9rem] md:size-52"
+      className="relative z-0 mb-3 size-24 select-none overflow-hidden rounded-full border border-cyan-100/22 bg-white/[0.06] shadow-[0_0_34px_rgba(103,232,249,0.32),0_0_90px_rgba(14,165,233,0.14)] backdrop-blur-md sm:mb-[-2.35rem] sm:size-40 md:mb-[-2.9rem] md:size-52"
       animate={reduceMotion ? false : { opacity: [0.88, 1, 0.88] }}
       transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
       aria-hidden="true"
