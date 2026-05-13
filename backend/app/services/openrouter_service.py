@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -13,6 +14,7 @@ from app.prompts.quiz_prompt import build_quiz_prompt
 from app.utils.json_tools import extract_json_object
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
+logger = logging.getLogger("genquiz.openrouter")
 
 
 @dataclass
@@ -45,12 +47,13 @@ class OpenRouterService:
         last_error: Exception | None = None
         deadline = time.monotonic() + min(120.0, max(30.0, self.settings.generation_timeout_seconds))
 
-        for attempt in range(2):
+        for attempt in range(3):
             remaining = deadline - time.monotonic()
             if remaining <= 1.0:
                 break
 
             try:
+                payload["temperature"] = 0.18 if attempt else 0.35
                 request_timeout = max(4.0, remaining - 0.5)
                 timeout = httpx.Timeout(request_timeout, connect=min(5.0, request_timeout))
 
@@ -66,10 +69,11 @@ class OpenRouterService:
                     raise HTTPException(status_code=exc.response.status_code, detail=detail) from exc
                 last_error = exc
             except (ValueError, KeyError, ValidationError) as exc:
+                logger.warning("OpenRouter returned unusable quiz JSON on attempt %s: %s", attempt + 1, exc)
                 last_error = exc
 
             remaining = deadline - time.monotonic()
-            if attempt == 0 and remaining > 2.0:
+            if attempt < 2 and remaining > 2.0:
                 await asyncio.sleep(min(0.6, remaining / 4))
 
         if isinstance(last_error, httpx.TimeoutException) or (deadline - time.monotonic()) <= 1.0:
@@ -80,7 +84,7 @@ class OpenRouterService:
 
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"AI quiz generation failed. {str(last_error) if last_error else 'Please try again.'}",
+            detail="AI quiz generation returned an invalid format. Please try again with a simpler topic or fewer questions.",
         )
 
     def _parse_response(self, data: dict[str, Any], request: GenerateQuizRequest) -> GeneratedQuiz:

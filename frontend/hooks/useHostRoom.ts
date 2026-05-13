@@ -3,8 +3,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRealtimeSocket, emitWithAckTimeout, type RealtimeSocket } from "@/lib/realtimeSocket";
 import type { RoomAck, RoomState } from "@/types/multiplayer";
+import type { GeneratedQuiz, QuizResult, QuizSettings } from "@/types/quiz";
 
 type HostRoomStatus = "idle" | "connecting" | "active" | "error";
+
+export type HostRoomController = ReturnType<typeof useHostRoom>;
+
+function getResultMetrics(result: QuizResult) {
+  const correct = result.answers.filter((answer) => answer.isCorrect).length;
+  const total = result.quiz.questions.length;
+  const averageResponseTime =
+    result.answers.length > 0
+      ? Math.round(result.answers.reduce((sum, answer) => sum + answer.responseTime, 0) / result.answers.length)
+      : 0;
+
+  return {
+    score: correct,
+    accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+    average_response_time: averageResponseTime
+  };
+}
 
 export function useHostRoom(enabled: boolean, roomCode: string | null) {
   const socketRef = useRef<RealtimeSocket | null>(null);
@@ -87,26 +105,59 @@ export function useHostRoom(enabled: boolean, roomCode: string | null) {
     };
   }, [enabled, roomCode]);
 
-  const startRoom = useCallback(async () => {
+  const startRoom = useCallback(async (quiz: GeneratedQuiz, settings: QuizSettings) => {
     const socket = socketRef.current;
     if (!socket || !roomCode) {
-      return;
+      return false;
     }
 
     try {
-      const ack = await emitWithAckTimeout<RoomAck>(socket, "start_room", { room_code: roomCode });
+      const ack = await emitWithAckTimeout<RoomAck>(socket, "start_room", {
+        room_code: roomCode,
+        quiz,
+        settings
+      });
       if (!ack.ok) {
         setErrorMessage(ack.message ?? "Could not start multiplayer arena.");
+        return false;
       }
+      if (ack.room) {
+        setRoomState(ack.room);
+      }
+      return true;
     } catch {
       setErrorMessage("Realtime connection lost.");
+      return false;
     }
   }, [roomCode]);
+
+  const submitResult = useCallback(async (result: QuizResult) => {
+    const socket = socketRef.current;
+    if (!socket) {
+      return false;
+    }
+
+    try {
+      const ack = await emitWithAckTimeout<RoomAck>(socket, "submit_result", getResultMetrics(result));
+      if (!ack.ok) {
+        setErrorMessage(ack.message ?? "Could not sync multiplayer results.");
+        return false;
+      }
+      if (ack.room) {
+        setRoomState(ack.room);
+      }
+      return true;
+    } catch {
+      setErrorMessage("Realtime connection lost.");
+      return false;
+    }
+  }, []);
 
   return {
     roomState,
     status,
     errorMessage,
-    startRoom
+    startRoom,
+    submitResult
   };
 }

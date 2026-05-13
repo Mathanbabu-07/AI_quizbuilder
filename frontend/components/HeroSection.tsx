@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { heroContainer, heroItem } from "@/animations/motionPresets";
 import { AboutGQSection } from "@/components/AboutGQSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
@@ -14,12 +14,15 @@ import { QuizLoadingScreen } from "@/components/QuizLoadingScreen";
 import { QuizResultsScreen } from "@/components/QuizResultsScreen";
 import { QuizReviewPanel } from "@/components/QuizReviewPanel";
 import { WaitingRoom } from "@/components/WaitingRoom";
+import { MultiplayerResultsWaiting } from "@/components/MultiplayerResultsWaiting";
+import { generateRoomCode } from "@/components/RoomCodeGenerator";
+import { useHostRoom } from "@/hooks/useHostRoom";
 import { useParticipantRoom } from "@/hooks/useParticipantRoom";
 import { generateQuiz } from "@/lib/quizApi";
 import type { GeneratedQuiz, QuizResult, QuizSettings } from "@/types/quiz";
 import { CreateButton } from "@/ui/CreateButton";
 
-type Screen = "home" | "create" | "loading" | "review" | "game" | "results" | "waiting";
+type Screen = "home" | "create" | "loading" | "review" | "game" | "results" | "waiting" | "resultsWaiting";
 
 export function HeroSection() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -28,8 +31,28 @@ export function HeroSection() {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [multiplayerEnabled, setMultiplayerEnabled] = useState(false);
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const hostRoom = useHostRoom(multiplayerEnabled, roomCode);
   const participantRoom = useParticipantRoom();
   const aboutRef = useRef<HTMLElement | null>(null);
+  const isParticipantSession = Boolean(participantRoom.participantId);
+
+  useEffect(() => {
+    const room = participantRoom.roomState;
+    if (screen === "waiting" && participantRoom.status === "started" && room?.quiz && room.settings) {
+      setQuiz(room.quiz);
+      setSettings(room.settings);
+      setScreen("game");
+    }
+  }, [participantRoom.roomState, participantRoom.status, screen]);
+
+  useEffect(() => {
+    const room = participantRoom.roomState;
+    if (screen === "resultsWaiting" && room?.all_finished && result) {
+      setScreen("results");
+    }
+  }, [participantRoom.roomState, result, screen]);
 
   const handleGenerate = async (nextSettings: QuizSettings) => {
     if (nextSettings.prompt.length < 3) {
@@ -56,6 +79,9 @@ export function HeroSection() {
     setSettings(null);
     setResult(null);
     setErrorMessage(null);
+    setMultiplayerEnabled(false);
+    setRoomCode(null);
+    participantRoom.leaveRoom();
     setScreen("create");
   };
 
@@ -81,6 +107,46 @@ export function HeroSection() {
   const leaveWaitingRoom = () => {
     participantRoom.leaveRoom();
     setScreen("home");
+  };
+
+  const handleMultiplayerToggle = (enabled: boolean) => {
+    setMultiplayerEnabled(enabled);
+    setRoomCode(enabled ? generateRoomCode() : null);
+  };
+
+  const handleStartQuiz = async () => {
+    if (!quiz || !settings) {
+      return;
+    }
+
+    if (multiplayerEnabled) {
+      const started = await hostRoom.startRoom(quiz, settings);
+      if (!started) {
+        return;
+      }
+    }
+
+    setScreen("game");
+  };
+
+  const handleGameComplete = async (nextResult: QuizResult) => {
+    setResult(nextResult);
+
+    if (isParticipantSession) {
+      await participantRoom.submitResult(nextResult);
+      if (participantRoom.roomState?.all_finished) {
+        setScreen("results");
+      } else {
+        setScreen("resultsWaiting");
+      }
+      return;
+    }
+
+    if (multiplayerEnabled) {
+      await hostRoom.submitResult(nextResult);
+    }
+
+    setScreen("results");
   };
 
   return (
@@ -133,7 +199,16 @@ export function HeroSection() {
         ) : screen === "loading" ? (
           <QuizLoadingScreen key="loading" />
         ) : screen === "review" && quiz && settings ? (
-          <QuizReviewPanel key="review" quiz={quiz} settings={settings} onStart={() => setScreen("game")} />
+          <QuizReviewPanel
+            key="review"
+            quiz={quiz}
+            settings={settings}
+            multiplayerEnabled={multiplayerEnabled}
+            roomCode={roomCode}
+            hostRoom={hostRoom}
+            onMultiplayerToggle={handleMultiplayerToggle}
+            onStart={handleStartQuiz}
+          />
         ) : screen === "waiting" && participantRoom.roomState && participantRoom.participantId ? (
           <WaitingRoom
             key="waiting"
@@ -147,13 +222,18 @@ export function HeroSection() {
             key="game"
             quiz={quiz}
             settings={settings}
-            onComplete={(nextResult) => {
-              setResult(nextResult);
-              setScreen("results");
-            }}
+            onComplete={handleGameComplete}
           />
+        ) : screen === "resultsWaiting" && participantRoom.roomState ? (
+          <MultiplayerResultsWaiting key="resultsWaiting" room={participantRoom.roomState} />
         ) : screen === "results" && result ? (
-          <QuizResultsScreen key="results" result={result} onRestart={resetFlow} />
+          <QuizResultsScreen
+            key="results"
+            result={result}
+            onRestart={resetFlow}
+            leaderboard={participantRoom.roomState?.leaderboard ?? hostRoom.roomState?.leaderboard ?? []}
+            currentParticipantId={participantRoom.participantId}
+          />
         ) : null}
       </AnimatePresence>
     </div>

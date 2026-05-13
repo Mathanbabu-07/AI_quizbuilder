@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRealtimeSocket, emitWithAckTimeout, type RealtimeSocket } from "@/lib/realtimeSocket";
 import type { RoomAck, RoomState } from "@/types/multiplayer";
+import type { QuizResult } from "@/types/quiz";
 
 type ParticipantConnectionStatus = "idle" | "joining" | "waiting" | "started" | "error";
 
@@ -12,6 +13,15 @@ export function useParticipantRoom() {
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [status, setStatus] = useState<ParticipantConnectionStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const applyRoomState = useCallback((room: RoomState) => {
+    setRoomState(room);
+    if (room.status === "finished") {
+      setStatus("started");
+      return;
+    }
+    setStatus(room.status === "started" ? "started" : "waiting");
+  }, []);
 
   const ensureSocket = useCallback(() => {
     if (socketRef.current) {
@@ -30,15 +40,20 @@ export function useParticipantRoom() {
 
     socketRef.current = socket;
 
-    socket.on("room_updated", (room: RoomState) => {
-      setRoomState(room);
-      setStatus(room.status === "started" ? "started" : "waiting");
+    socket.on("room_updated", applyRoomState);
+
+    socket.on("room_start", (room: RoomState) => {
+      applyRoomState(room);
+      setStatus("started");
     });
 
     socket.on("quiz_started", (room: RoomState) => {
-      setRoomState(room);
+      applyRoomState(room);
       setStatus("started");
     });
+
+    socket.on("leaderboard_updated", applyRoomState);
+    socket.on("room_results_ready", applyRoomState);
 
     socket.on("room_closed", (payload: { message?: string }) => {
       setStatus("error");
@@ -60,7 +75,7 @@ export function useParticipantRoom() {
     });
 
     return socket;
-  }, []);
+  }, [applyRoomState]);
 
   const joinRoom = useCallback(
     async (roomCode: string) => {
@@ -102,11 +117,10 @@ export function useParticipantRoom() {
       }
 
       setParticipantId(ack.participant_id);
-      setRoomState(ack.room);
-      setStatus(ack.room.status === "started" ? "started" : "waiting");
+      applyRoomState(ack.room);
       return true;
     },
-    [ensureSocket]
+    [applyRoomState, ensureSocket]
   );
 
   const updateName = useCallback(async (name: string) => {
@@ -148,6 +162,39 @@ export function useParticipantRoom() {
     setErrorMessage(null);
   }, []);
 
+  const submitResult = useCallback(async (result: QuizResult) => {
+    const socket = socketRef.current;
+    if (!socket) {
+      return false;
+    }
+
+    const correct = result.answers.filter((answer) => answer.isCorrect).length;
+    const total = result.quiz.questions.length;
+    const averageResponseTime =
+      result.answers.length > 0
+        ? Math.round(result.answers.reduce((sum, answer) => sum + answer.responseTime, 0) / result.answers.length)
+        : 0;
+
+    try {
+      const ack = await emitWithAckTimeout<RoomAck>(socket, "submit_result", {
+        score: correct,
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+        average_response_time: averageResponseTime
+      });
+      if (!ack.ok) {
+        setErrorMessage(ack.message ?? "Could not sync multiplayer results.");
+        return false;
+      }
+      if (ack.room) {
+        applyRoomState(ack.room);
+      }
+      return true;
+    } catch {
+      setErrorMessage("Realtime connection lost.");
+      return false;
+    }
+  }, [applyRoomState]);
+
   useEffect(() => {
     return () => {
       socketRef.current?.disconnect();
@@ -162,6 +209,7 @@ export function useParticipantRoom() {
     errorMessage,
     joinRoom,
     updateName,
-    leaveRoom
+    leaveRoom,
+    submitResult
   };
 }

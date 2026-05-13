@@ -4,8 +4,10 @@ from app.models.quiz import GenerateQuizRequest
 def build_quiz_prompt(request: GenerateQuizRequest) -> list[dict[str, str]]:
     system = (
         "You are GENQUIZ, an expert assessment designer. "
-        "Return only strict JSON. Do not wrap the JSON in markdown. "
-        "Do not include explanations, comments, trailing commas, or extra keys."
+        "Return only one strict JSON object. Do not wrap the JSON in markdown. "
+        "Do not include explanations, comments, trailing commas, or extra keys. "
+        "Every string must be valid JSON with escaped double quotes and escaped newlines. "
+        "Do not place unescaped quote characters inside question or choice strings."
     )
 
     user = f"""
@@ -25,6 +27,8 @@ Rules:
 - Keep each question under 140 characters when possible.
 - Keep each choice under 70 characters when possible.
 - For programming quizzes, include short code snippets only when they are necessary.
+- If code needs quotes, prefer single quotes inside the code snippet.
+- Escape every JSON string correctly. Never return malformed JSON.
 
 Return this exact JSON shape:
 {{

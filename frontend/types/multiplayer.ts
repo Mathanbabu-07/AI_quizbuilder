@@ -1,5 +1,5 @@
 export type ParticipantRole = "host" | "participant";
-export type RoomStatus = "waiting" | "started" | "closed";
+export type RoomStatus = "waiting" | "started" | "finished" | "closed";
 
 export type ParticipantState = {
   id: string;
@@ -7,6 +7,10 @@ export type ParticipantState = {
   role: ParticipantRole;
   is_host: boolean;
   joined_at: number;
+  completed: boolean;
+  score: number | null;
+  accuracy: number | null;
+  average_response_time: number | null;
 };
 
 export type RoomState = {
@@ -16,6 +20,11 @@ export type RoomState = {
   participants: ParticipantState[];
   participant_count: number;
   created_at: number;
+  started_at: number | null;
+  quiz: import("@/types/quiz").GeneratedQuiz | null;
+  settings: import("@/types/quiz").QuizSettings | null;
+  leaderboard: ParticipantState[];
+  all_finished: boolean;
 };
 
 export type RoomAck = {

@@ -66,11 +66,37 @@ async def update_name(sid, data):
 @sio.event
 async def start_room(sid, data):
     try:
-        room = await room_service.start_room(sid, data.get("room_code"))
+        room = await room_service.start_room(
+            sid,
+            data.get("room_code"),
+            quiz=data.get("quiz"),
+            settings=data.get("settings"),
+        )
         payload = room.model_dump()
         logger.info("room started code=%s host_sid=%s", room.code, sid)
+        await sio.emit("room_start", payload, room=room.code)
         await sio.emit("quiz_started", payload, room=room.code)
         await sio.emit("room_updated", payload, room=room.code)
+        return {"ok": True, "room": payload}
+    except RoomError as exc:
+        return {"ok": False, "message": exc.message}
+
+
+@sio.event
+async def submit_result(sid, data):
+    try:
+        room = await room_service.submit_result(
+            sid,
+            data.get("score"),
+            data.get("accuracy"),
+            data.get("average_response_time"),
+        )
+        payload = room.model_dump()
+        logger.info("result submitted code=%s sid=%s all_finished=%s", room.code, sid, room.all_finished)
+        await sio.emit("room_updated", payload, room=room.code)
+        await sio.emit("leaderboard_updated", payload, room=room.code)
+        if room.all_finished:
+            await sio.emit("room_results_ready", payload, room=room.code)
         return {"ok": True, "room": payload}
     except RoomError as exc:
         return {"ok": False, "message": exc.message}

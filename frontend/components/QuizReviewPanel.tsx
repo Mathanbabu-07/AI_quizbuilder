@@ -1,42 +1,33 @@
 "use client";
 
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, ShieldCheck } from "lucide-react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { HostParticipantsPanel } from "@/components/HostParticipantsPanel";
 import { MultiplayerCodePanel } from "@/components/MultiplayerCodePanel";
 import { MultiplayerToggle } from "@/components/MultiplayerToggle";
-import { generateRoomCode } from "@/components/RoomCodeGenerator";
-import { useHostRoom } from "@/hooks/useHostRoom";
+import type { HostRoomController } from "@/hooks/useHostRoom";
 import type { GeneratedQuiz, QuizSettings } from "@/types/quiz";
 
 type QuizReviewPanelProps = {
   quiz: GeneratedQuiz;
   settings: QuizSettings;
+  multiplayerEnabled: boolean;
+  roomCode: string | null;
+  hostRoom: HostRoomController;
+  onMultiplayerToggle: (enabled: boolean) => void;
   onStart: () => void;
 };
 
-export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProps) {
-  const [multiplayerEnabled, setMultiplayerEnabled] = useState(false);
-  const [roomCode, setRoomCode] = useState<string | null>(null);
-  const hostRoom = useHostRoom(multiplayerEnabled, roomCode);
-
-  const handleMultiplayerToggle = (enabled: boolean) => {
-    setMultiplayerEnabled(enabled);
-
-    if (enabled) {
-      setRoomCode(generateRoomCode());
-    }
-  };
-
-  const handleStart = () => {
-    if (multiplayerEnabled) {
-      void hostRoom.startRoom();
-    }
-    onStart();
-  };
-
+export function QuizReviewPanel({
+  quiz,
+  settings,
+  multiplayerEnabled,
+  roomCode,
+  hostRoom,
+  onMultiplayerToggle,
+  onStart
+}: QuizReviewPanelProps) {
   return (
     <motion.section
       className="relative z-10 flex min-h-dvh justify-center px-4 py-20 sm:px-8 sm:py-24 xl:px-10"
@@ -54,7 +45,7 @@ export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProp
 
         <div className="order-1 min-w-0 xl:order-2">
           <div className="mx-auto mb-6 max-w-md">
-            <MultiplayerToggle enabled={multiplayerEnabled} onToggle={handleMultiplayerToggle} />
+            <MultiplayerToggle enabled={multiplayerEnabled} onToggle={onMultiplayerToggle} />
           </div>
 
           <div className="text-center">
@@ -119,7 +110,7 @@ export function QuizReviewPanel({ quiz, settings, onStart }: QuizReviewPanelProp
         </div>
 
         <div className="order-5 sticky bottom-5 mt-4 flex justify-center xl:col-start-2">
-          <AnimatedButton onClick={handleStart}>
+          <AnimatedButton onClick={onStart}>
             <Play className="mr-3 size-4" />
             Start Quiz
           </AnimatedButton>
