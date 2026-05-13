@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createRealtimeSocket, type RealtimeSocket } from "@/lib/realtimeSocket";
+import { createRealtimeSocket, emitWithAckTimeout, type RealtimeSocket } from "@/lib/realtimeSocket";
 import type { RoomAck, RoomState } from "@/types/multiplayer";
 
 type ParticipantConnectionStatus = "idle" | "joining" | "waiting" | "started" | "error";
@@ -18,7 +18,16 @@ export function useParticipantRoom() {
       return socketRef.current;
     }
 
-    const socket = createRealtimeSocket();
+    let socket: RealtimeSocket;
+
+    try {
+      socket = createRealtimeSocket();
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Unable to connect to multiplayer server.");
+      throw error;
+    }
+
     socketRef.current = socket;
 
     socket.on("room_updated", (room: RoomState) => {
@@ -43,7 +52,11 @@ export function useParticipantRoom() {
 
     socket.on("connect_error", () => {
       setStatus("error");
-      setErrorMessage("Realtime arena channel unavailable.");
+      setErrorMessage("Unable to connect to multiplayer server.");
+    });
+
+    socket.on("disconnect", () => {
+      setErrorMessage("Realtime connection lost.");
     });
 
     return socket;
@@ -57,7 +70,14 @@ export function useParticipantRoom() {
         return false;
       }
 
-      const socket = ensureSocket();
+      let socket: RealtimeSocket;
+
+      try {
+        socket = ensureSocket();
+      } catch {
+        return false;
+      }
+
       setStatus("joining");
       setErrorMessage(null);
 
@@ -65,7 +85,16 @@ export function useParticipantRoom() {
         socket.connect();
       }
 
-      const ack = await socket.emitWithAck<RoomAck>("join_room", { room_code: normalizedCode });
+      let ack: RoomAck;
+
+      try {
+        ack = await emitWithAckTimeout<RoomAck>(socket, "join_room", { room_code: normalizedCode });
+      } catch {
+        setStatus("error");
+        setErrorMessage("Unable to connect to multiplayer server.");
+        return false;
+      }
+
       if (!ack.ok || !ack.room || !ack.participant_id) {
         setStatus("error");
         setErrorMessage(ack.message ?? "Room not found.");
@@ -86,7 +115,15 @@ export function useParticipantRoom() {
       return false;
     }
 
-    const ack = await socket.emitWithAck<RoomAck>("update_name", { name });
+    let ack: RoomAck;
+
+    try {
+      ack = await emitWithAckTimeout<RoomAck>(socket, "update_name", { name });
+    } catch {
+      setErrorMessage("Realtime connection lost.");
+      return false;
+    }
+
     if (!ack.ok) {
       setErrorMessage(ack.message ?? "Could not update name.");
       return false;

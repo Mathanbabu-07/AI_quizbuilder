@@ -9,3 +9,9 @@ export type RealtimeSocket = {
 
 export declare const REALTIME_URL: string;
 export declare function createRealtimeSocket(): RealtimeSocket;
+export declare function emitWithAckTimeout<T = unknown>(
+  socket: RealtimeSocket,
+  event: string,
+  payload: unknown,
+  timeoutMs?: number
+): Promise<T>;

@@ -1,7 +1,16 @@
 import type { GeneratedQuiz, QuizSettings } from "@/types/quiz";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const GENERATION_CLIENT_TIMEOUT_MS = 125_000;
+
+function getApiBaseUrl() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/$/, "");
+
+  if (!apiUrl) {
+    throw new Error("GENQUIZ API URL is not configured. Set NEXT_PUBLIC_API_URL in the frontend environment.");
+  }
+
+  return apiUrl;
+}
 
 type GenerateQuizApiResponse = {
   quiz: GeneratedQuiz;
@@ -31,13 +40,14 @@ function normalizeApiError(payload: ApiErrorPayload): string | null {
 }
 
 export async function generateQuiz(settings: QuizSettings): Promise<GeneratedQuiz> {
+  const apiBaseUrl = getApiBaseUrl();
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
 
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_URL}/api/quiz/generate`, {
+    response = await fetch(`${apiBaseUrl}/api/quiz/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -56,7 +66,7 @@ export async function generateQuiz(settings: QuizSettings): Promise<GeneratedQui
       throw new Error("AI quiz generation is taking longer than expected. Try fewer questions or generate again.");
     }
 
-    throw new Error("Could not reach the GENQUIZ backend. Check that the backend server is running.");
+    throw new Error("Could not reach the GENQUIZ backend. Check the API URL and backend server status.");
   } finally {
     window.clearTimeout(timeoutId);
   }

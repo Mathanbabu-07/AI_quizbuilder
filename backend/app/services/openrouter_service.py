@@ -38,7 +38,7 @@ class OpenRouterService:
         headers = {
             "Authorization": f"Bearer {self.settings.openrouter_api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": self.settings.frontend_origin,
+            "HTTP-Referer": self.settings.frontend_url,
             "X-Title": "GENQUIZ",
         }
 

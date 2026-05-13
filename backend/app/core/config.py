@@ -12,7 +12,8 @@ load_dotenv(BASE_DIR / ".env")
 class Settings(BaseModel):
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-oss-120b:free"
-    frontend_origin: str = "http://localhost:3001"
+    frontend_url: str = ""
+    frontend_urls: list[str] = []
     generation_timeout_seconds: float = 120.0
     supabase_url: str = ""
     supabase_service_role_key: str = ""
@@ -30,12 +31,34 @@ def _float_env(name: str, default: float) -> float:
         return default
 
 
+def _csv_env(name: str) -> list[str]:
+    raw_value = os.getenv(name, "")
+    return [value.strip().rstrip("/") for value in raw_value.split(",") if value.strip()]
+
+
+def _unique_urls(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    urls: list[str] = []
+
+    for value in values:
+        normalized = value.strip().rstrip("/")
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            urls.append(normalized)
+
+    return urls
+
+
 @lru_cache
 def get_settings() -> Settings:
+    frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+    frontend_urls = _unique_urls([frontend_url, *_csv_env("FRONTEND_URLS")])
+
     return Settings(
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
         openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b:free"),
-        frontend_origin=os.getenv("FRONTEND_ORIGIN", "http://localhost:3001"),
+        frontend_url=frontend_url,
+        frontend_urls=frontend_urls,
         generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
         supabase_url=os.getenv("SUPABASE_URL", ""),
         supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""),

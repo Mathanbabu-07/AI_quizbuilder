@@ -11,7 +11,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Set `OPENROUTER_API_KEY` in `.env`.
+Set environment variables from `.env.example`.
 
 Optional performance settings:
 
@@ -20,14 +20,18 @@ OPENROUTER_MODEL=openai/gpt-oss-120b:free
 GENERATION_TIMEOUT_SECONDS=120
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+FRONTEND_URL=
+FRONTEND_URLS=
 ```
 
 ## Run
 
-```powershell
+```bash
 cd backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:socket_app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
+
+`app.main:app` serves FastAPI and Socket.IO from one ASGI app.
 
 ## API
 
