@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useTransform } from "framer-motion";
 import { BrainCircuit, CircleDot, Sparkle, Trophy } from "lucide-react";
 import { AmbientGlowLayer } from "@/components/AmbientGlowLayer";
 import { usePointerParallax } from "@/hooks/usePointerParallax";
@@ -67,6 +67,16 @@ export function AnimatedBackground() {
   const parallax = usePointerParallax(28);
   const reduceMotion = useReducedMotion();
   const motionEnabled = !reduceMotion;
+  const glowOneX = useTransform(parallax.x, (value) => value * 0.55);
+  const glowOneY = useTransform(parallax.y, (value) => value * 0.4);
+  const glowTwoX = useTransform(parallax.x, (value) => value * -0.45);
+  const glowTwoY = useTransform(parallax.y, (value) => value * -0.35);
+  const glowThreeX = useTransform(parallax.x, (value) => value * -0.28);
+  const glowThreeY = useTransform(parallax.y, (value) => value * 0.32);
+  const particleX = useTransform(parallax.x, (value) => value * 0.22);
+  const particleY = useTransform(parallax.y, (value) => value * 0.22);
+  const glowParticleX = useTransform(parallax.x, (value) => value * 0.14);
+  const glowParticleY = useTransform(parallax.y, (value) => value * 0.16);
 
   return (
     <div className="pointer-events-none absolute inset-0 isolate overflow-hidden" aria-hidden="true">
@@ -81,17 +91,20 @@ export function AnimatedBackground() {
 
       <motion.div
         className="absolute -left-[16rem] top-[-18rem] h-[36rem] w-[36rem] rounded-full bg-cyan-300/28 blur-[92px]"
-        animate={motionEnabled ? { x: parallax.x * 0.55, y: parallax.y * 0.4, scale: [1, 1.08, 1] } : false}
+        style={motionEnabled ? { x: glowOneX, y: glowOneY } : undefined}
+        animate={motionEnabled ? { scale: [1, 1.08, 1] } : false}
         transition={{ scale: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
       />
       <motion.div
         className="absolute -right-[15rem] bottom-[-16rem] h-[38rem] w-[38rem] rounded-full bg-fuchsia-400/23 blur-[100px]"
-        animate={motionEnabled ? { x: parallax.x * -0.45, y: parallax.y * -0.35, scale: [1, 1.1, 1] } : false}
+        style={motionEnabled ? { x: glowTwoX, y: glowTwoY } : undefined}
+        animate={motionEnabled ? { scale: [1, 1.1, 1] } : false}
         transition={{ scale: { duration: 9, repeat: Infinity, ease: "easeInOut" } }}
       />
       <motion.div
         className="absolute left-[42%] top-[18%] h-[22rem] w-[22rem] rounded-full bg-emerald-300/12 blur-[76px]"
-        animate={motionEnabled ? { x: parallax.x * -0.28, y: parallax.y * 0.32, opacity: [0.55, 0.85, 0.55] } : false}
+        style={motionEnabled ? { x: glowThreeX, y: glowThreeY } : undefined}
+        animate={motionEnabled ? { opacity: [0.55, 0.85, 0.55] } : false}
         transition={{ opacity: { duration: 7.5, repeat: Infinity, ease: "easeInOut" } }}
       />
 
@@ -110,7 +123,7 @@ export function AnimatedBackground() {
 
       <motion.div
         className="absolute inset-0"
-        animate={motionEnabled ? { x: parallax.x * 0.22, y: parallax.y * 0.22 } : false}
+        style={motionEnabled ? { x: particleX, y: particleY } : undefined}
         transition={{ type: "spring", stiffness: 90, damping: 28 }}
       >
         {particles.map((particle) => (
@@ -144,7 +157,7 @@ export function AnimatedBackground() {
 
       <motion.div
         className="absolute inset-0"
-        animate={motionEnabled ? { x: parallax.x * 0.14, y: parallax.y * 0.16 } : false}
+        style={motionEnabled ? { x: glowParticleX, y: glowParticleY } : undefined}
         transition={{ type: "spring", stiffness: 70, damping: 26 }}
       >
         {glowParticles.map((particle) => (

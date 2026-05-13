@@ -31,9 +31,9 @@ class OpenRouterService:
         payload = {
             "model": self.settings.openrouter_model,
             "messages": build_quiz_prompt(request),
-            "temperature": 0.42,
-            "top_p": 0.86,
-            "max_tokens": min(9000, 650 + request.question_count * 155),
+            "temperature": 0.28,
+            "top_p": 0.82,
+            "max_tokens": min(7600, 520 + request.question_count * 125),
             "response_format": {"type": "json_object"},
         }
 
@@ -53,7 +53,7 @@ class OpenRouterService:
                 break
 
             try:
-                payload["temperature"] = 0.18 if attempt else 0.35
+                payload["temperature"] = 0.12 if attempt else 0.28
                 request_timeout = max(4.0, remaining - 0.5)
                 timeout = httpx.Timeout(request_timeout, connect=min(5.0, request_timeout))
 

@@ -13,6 +13,8 @@
 html {
   min-height: 100%;
   background: var(--color-void);
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -21,13 +23,23 @@ body {
   background: var(--color-void);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
   text-rendering: optimizeLegibility;
+  -webkit-overflow-scrolling: touch;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 button {
   font: inherit;
+  touch-action: manipulation;
+}
+
+textarea,
+input,
+select,
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {

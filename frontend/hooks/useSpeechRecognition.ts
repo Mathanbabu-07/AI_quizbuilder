@@ -6,6 +6,7 @@ type SpeechRecognitionResultLike = {
   isFinal: boolean;
   0: {
     transcript: string;
+    confidence?: number;
   };
 };
 
@@ -24,6 +25,7 @@ type SpeechRecognitionLike = EventTarget & {
   onresult: null | ((event: SpeechRecognitionEventLike) => void);
   start: () => void;
   stop: () => void;
+  abort?: () => void;
 };
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
@@ -35,6 +37,8 @@ type SpeechWindow = Window & {
 
 export function useSpeechRecognition() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const finalSegmentsRef = useRef<string[]>([]);
+  const interimRef = useRef("");
   const [supported, setSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [finalTranscript, setFinalTranscript] = useState("");
@@ -89,34 +93,54 @@ export function useSpeechRecognition() {
     };
 
     recognition.onresult = (event) => {
-      let nextFinal = "";
+      const nextFinalSegments: string[] = [];
       let nextInterim = "";
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
-        const transcript = result[0].transcript.trim();
+        const transcript = cleanupTranscript(result[0].transcript);
+        const confidence = result[0].confidence ?? 1;
 
-        if (!transcript) {
+        if (!transcript || confidence < 0.35) {
           continue;
         }
 
         if (result.isFinal) {
-          nextFinal += `${transcript} `;
+          nextFinalSegments.push(transcript);
         } else {
-          nextInterim += `${transcript} `;
+          nextInterim = mergeTranscript(nextInterim, transcript);
         }
       }
 
-      if (nextFinal) {
-        setFinalTranscript((current) => `${current}${nextFinal}`.trim());
+      if (nextFinalSegments.length > 0) {
+        for (const segment of nextFinalSegments) {
+          const previous = finalSegmentsRef.current.at(-1) ?? "";
+          const merged = mergeTranscript(previous, segment);
+
+          if (merged === previous) {
+            continue;
+          }
+
+          if (merged !== segment && previous) {
+            finalSegmentsRef.current[finalSegmentsRef.current.length - 1] = merged;
+          } else {
+            finalSegmentsRef.current.push(segment);
+          }
+        }
+
+        setFinalTranscript(cleanupTranscript(finalSegmentsRef.current.join(" ")));
       }
 
-      setInterimTranscript(nextInterim.trim());
+      if (nextInterim !== interimRef.current) {
+        interimRef.current = nextInterim;
+        window.requestAnimationFrame(() => setInterimTranscript(nextInterim));
+      }
     };
 
     recognitionRef.current = recognition;
 
     return () => {
+      recognition.abort?.();
       recognition.stop();
       recognitionRef.current = null;
     };
@@ -128,9 +152,15 @@ export function useSpeechRecognition() {
     }
 
     setError(null);
+    finalSegmentsRef.current = [];
+    interimRef.current = "";
     setFinalTranscript("");
     setInterimTranscript("");
-    recognitionRef.current.start();
+    try {
+      recognitionRef.current.start();
+    } catch {
+      setError("Voice input is already starting. Try again in a moment.");
+    }
   };
 
   const stopListening = () => {
@@ -146,4 +176,42 @@ export function useSpeechRecognition() {
     startListening,
     stopListening
   };
+}
+
+function cleanupTranscript(value: string): string {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/\s+([?.!,])/g, "$1")
+    .trim();
+}
+
+function mergeTranscript(base: string, addition: string): string {
+  const cleanBase = cleanupTranscript(base);
+  const cleanAddition = cleanupTranscript(addition);
+
+  if (!cleanBase) {
+    return cleanAddition;
+  }
+  if (!cleanAddition) {
+    return cleanBase;
+  }
+
+  const baseWords = cleanBase.split(" ");
+  const additionWords = cleanAddition.split(" ");
+  const maxOverlap = Math.min(baseWords.length, additionWords.length, 8);
+
+  for (let size = maxOverlap; size > 0; size -= 1) {
+    const baseTail = baseWords.slice(-size).join(" ").toLowerCase();
+    const additionHead = additionWords.slice(0, size).join(" ").toLowerCase();
+
+    if (baseTail === additionHead) {
+      return cleanupTranscript([...baseWords, ...additionWords.slice(size)].join(" "));
+    }
+  }
+
+  if (cleanBase.toLowerCase().endsWith(cleanAddition.toLowerCase())) {
+    return cleanBase;
+  }
+
+  return cleanupTranscript(`${cleanBase} ${cleanAddition}`);
 }

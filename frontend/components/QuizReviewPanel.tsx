@@ -28,6 +28,8 @@ export function QuizReviewPanel({
   onMultiplayerToggle,
   onStart
 }: QuizReviewPanelProps) {
+  const multiplayerReady = !multiplayerEnabled || (hostRoom.status === "active" && Boolean(hostRoom.roomState?.quiz));
+
   return (
     <motion.section
       className="relative z-10 flex min-h-dvh justify-center px-4 py-20 sm:px-8 sm:py-24 xl:px-10"
@@ -110,9 +112,9 @@ export function QuizReviewPanel({
         </div>
 
         <div className="order-5 sticky bottom-5 mt-4 flex justify-center xl:col-start-2">
-          <AnimatedButton onClick={onStart}>
+          <AnimatedButton onClick={onStart} disabled={!multiplayerReady}>
             <Play className="mr-3 size-4" />
-            Start Quiz
+            {multiplayerReady ? "Start Quiz" : "Syncing Arena"}
           </AnimatedButton>
         </div>
       </div>

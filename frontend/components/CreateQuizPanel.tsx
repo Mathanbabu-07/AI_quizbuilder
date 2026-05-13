@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, Hash, Hourglass, MessageSquareText, Mic, Timer, Waves } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Brain, Gamepad2, Hash, Hourglass, MessageSquareText, Mic, Timer, UserRound, UsersRound, Waves } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { AnimatedInput } from "@/components/AnimatedInput";
 import { AnimatedSelect } from "@/components/AnimatedSelect";
@@ -24,10 +24,17 @@ const difficultyOptions = [
 
 type CreateQuizPanelProps = {
   errorMessage?: string | null;
+  multiplayerEnabled: boolean;
+  onMultiplayerChange: (enabled: boolean) => void;
   onGenerate: (settings: QuizSettings) => void;
 };
 
-export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelProps) {
+function CreateQuizPanelComponent({
+  errorMessage,
+  multiplayerEnabled,
+  onMultiplayerChange,
+  onGenerate
+}: CreateQuizPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [questions, setQuestions] = useState("10");
   const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
@@ -74,15 +81,19 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
     startListening();
   };
 
-  const voiceStatus = voiceError
-    ? voiceError
-    : isListening
-      ? interimTranscript
-        ? "Transcribing your quiz idea..."
-        : "Listening for your quiz prompt..."
-      : supported
-        ? "Use voice to describe the quiz you want to generate."
-        : "Voice prompting is not available in this browser.";
+  const voiceStatus = useMemo(
+    () =>
+      voiceError
+        ? voiceError
+        : isListening
+          ? interimTranscript
+            ? "Transcribing your quiz idea..."
+            : "Listening for your quiz prompt..."
+          : supported
+            ? "Use voice to describe the quiz you want to generate."
+            : "Voice prompting is not available in this browser.",
+    [interimTranscript, isListening, supported, voiceError]
+  );
 
   return (
     <motion.section
@@ -141,6 +152,35 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
             visible: { opacity: 1, y: 0, transition: { duration: 0.58, ease: [0.22, 1, 0.36, 1] } }
           }}
         >
+          <div className="mb-5 flex justify-center sm:justify-start">
+            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/[0.055] p-1 shadow-[0_16px_44px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
+              <button
+                type="button"
+                onClick={() => onMultiplayerChange(false)}
+                className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 font-display text-[0.68rem] font-extrabold uppercase tracking-[0.12em] transition-colors duration-200 ${
+                  !multiplayerEnabled
+                    ? "bg-cyan-100/14 text-cyan-50 shadow-[0_0_22px_rgba(103,232,249,0.16)]"
+                    : "text-white/44 hover:text-white/72"
+                }`}
+              >
+                <UserRound className="size-3.5" />
+                Solo
+              </button>
+              <button
+                type="button"
+                onClick={() => onMultiplayerChange(true)}
+                className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 font-display text-[0.68rem] font-extrabold uppercase tracking-[0.12em] transition-colors duration-200 ${
+                  multiplayerEnabled
+                    ? "bg-fuchsia-100/14 text-fuchsia-50 shadow-[0_0_22px_rgba(240,171,252,0.16)]"
+                    : "text-white/44 hover:text-white/72"
+                }`}
+              >
+                <UsersRound className="size-3.5" />
+                Multiplayer
+              </button>
+            </div>
+          </div>
+
           <AnimatedInput
             label="Quiz Prompt"
             value={prompt}
@@ -250,15 +290,25 @@ export function CreateQuizPanel({ errorMessage, onGenerate }: CreateQuizPanelPro
         </motion.div>
 
         <motion.div
-          className="mt-9 flex justify-center"
+          className="mt-9 flex flex-col items-center justify-center gap-3"
           variants={{
             hidden: { opacity: 0, y: 18 },
             visible: { opacity: 1, y: 0, transition: { duration: 0.58, ease: [0.22, 1, 0.36, 1] } }
           }}
         >
-          <AnimatedButton type="submit">Generate</AnimatedButton>
+          <AnimatedButton type="submit">
+            <Gamepad2 className="mr-3 size-4" />
+            {multiplayerEnabled ? "Generate Arena" : "Generate & Play"}
+          </AnimatedButton>
+          <p className="text-center font-sans text-xs font-semibold text-white/42">
+            {multiplayerEnabled
+              ? "Multiplayer creates a room code and host review screen."
+              : "Solo mode starts the quiz immediately after AI generation."}
+          </p>
         </motion.div>
       </motion.form>
     </motion.section>
   );
 }
+
+export const CreateQuizPanel = memo(CreateQuizPanelComponent);

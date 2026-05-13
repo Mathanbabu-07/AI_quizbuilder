@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check, X } from "lucide-react";
+import { memo, useMemo } from "react";
 import { CodeSnippetBlock } from "@/components/CodeSnippetBlock";
 
 type QuizChoiceBoxProps = {
@@ -13,8 +14,8 @@ type QuizChoiceBoxProps = {
   onSelect: () => void;
 };
 
-export function QuizChoiceBox({ choice, selected, correct, revealed, disabled, onSelect }: QuizChoiceBoxProps) {
-  const { prose, code } = splitCodeFromText(choice);
+function QuizChoiceBoxComponent({ choice, selected, correct, revealed, disabled, onSelect }: QuizChoiceBoxProps) {
+  const { prose, code } = useMemo(() => splitCodeFromText(choice), [choice]);
   const stateClass = revealed
     ? correct
       ? "border-emerald-200/70 bg-emerald-300/14 shadow-[0_0_36px_rgba(52,211,153,0.28)]"
@@ -43,6 +44,8 @@ export function QuizChoiceBox({ choice, selected, correct, revealed, disabled, o
     </motion.button>
   );
 }
+
+export const QuizChoiceBox = memo(QuizChoiceBoxComponent);
 
 function splitCodeFromText(text: string): { prose: string; code: string | null } {
   const fenced = text.match(/```(?:\w+)?\s*([\s\S]*?)```/);

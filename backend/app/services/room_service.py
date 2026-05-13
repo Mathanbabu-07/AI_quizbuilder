@@ -47,7 +47,13 @@ class RoomService:
     def normalize_code(code: str | None) -> str:
         return "".join((code or "").upper().split())
 
-    async def create_room(self, room_code: str | None, host_sid: str) -> RoomState:
+    async def create_room(
+        self,
+        room_code: str | None,
+        host_sid: str,
+        quiz: dict[str, Any] | None = None,
+        settings: dict[str, Any] | None = None,
+    ) -> RoomState:
         code = self.normalize_code(room_code)
         if len(code) < 4 or len(code) > 10:
             raise RoomError("Invalid arena code.")
@@ -58,7 +64,13 @@ class RoomService:
             if code in self._rooms:
                 raise RoomError("Arena code is already active.")
 
-            room = RoomRecord(code=code, host_sid=host_sid, created_at=time.time())
+            room = RoomRecord(
+                code=code,
+                host_sid=host_sid,
+                created_at=time.time(),
+                quiz=quiz,
+                settings=settings,
+            )
             room.participants[host_sid] = ParticipantRecord(
                 sid=host_sid,
                 name="Host",
@@ -143,8 +155,8 @@ class RoomService:
 
             room.status = "started"
             room.started_at = time.time()
-            room.quiz = quiz
-            room.settings = settings
+            room.quiz = quiz or room.quiz
+            room.settings = settings or room.settings
 
             for participant in room.participants.values():
                 participant.completed = False

@@ -33,26 +33,27 @@ export function HeroSection() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [multiplayerEnabled, setMultiplayerEnabled] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
-  const hostRoom = useHostRoom(multiplayerEnabled, roomCode);
+  const hostRoom = useHostRoom(multiplayerEnabled, roomCode, quiz, settings);
   const participantRoom = useParticipantRoom();
   const aboutRef = useRef<HTMLElement | null>(null);
   const isParticipantSession = Boolean(participantRoom.participantId);
 
   useEffect(() => {
     const room = participantRoom.roomState;
-    if (screen === "waiting" && participantRoom.status === "started" && room?.quiz && room.settings) {
+    if (screen === "waiting" && room?.status === "started" && room.quiz && room.settings) {
       setQuiz(room.quiz);
       setSettings(room.settings);
       setScreen("game");
     }
-  }, [participantRoom.roomState, participantRoom.status, screen]);
+  }, [participantRoom.roomState, screen]);
 
   useEffect(() => {
     const room = participantRoom.roomState;
-    if (screen === "resultsWaiting" && room?.all_finished && result) {
+    const hostState = hostRoom.roomState;
+    if (screen === "resultsWaiting" && result && (room?.all_finished || hostState?.all_finished)) {
       setScreen("results");
     }
-  }, [participantRoom.roomState, result, screen]);
+  }, [hostRoom.roomState, participantRoom.roomState, result, screen]);
 
   const handleGenerate = async (nextSettings: QuizSettings) => {
     if (nextSettings.prompt.length < 3) {
@@ -67,7 +68,13 @@ export function HeroSection() {
     try {
       const generatedQuiz = await generateQuiz(nextSettings);
       setQuiz(generatedQuiz);
-      setScreen("review");
+      if (multiplayerEnabled) {
+        setRoomCode(generateRoomCode());
+        setScreen("review");
+        return;
+      }
+
+      setScreen("game");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "The AI engine could not generate this quiz.");
       setScreen("create");
@@ -133,8 +140,8 @@ export function HeroSection() {
     setResult(nextResult);
 
     if (isParticipantSession) {
-      await participantRoom.submitResult(nextResult);
-      if (participantRoom.roomState?.all_finished) {
+      const syncedRoom = await participantRoom.submitResult(nextResult);
+      if (syncedRoom?.all_finished) {
         setScreen("results");
       } else {
         setScreen("resultsWaiting");
@@ -143,7 +150,13 @@ export function HeroSection() {
     }
 
     if (multiplayerEnabled) {
-      await hostRoom.submitResult(nextResult);
+      const syncedRoom = await hostRoom.submitResult(nextResult);
+      if (syncedRoom?.all_finished) {
+        setScreen("results");
+      } else {
+        setScreen("resultsWaiting");
+      }
+      return;
     }
 
     setScreen("results");
@@ -195,7 +208,13 @@ export function HeroSection() {
             <AboutGQSection sectionRef={aboutRef} />
           </motion.div>
         ) : screen === "create" ? (
-          <CreateQuizPanel key="create" errorMessage={errorMessage} onGenerate={handleGenerate} />
+          <CreateQuizPanel
+            key="create"
+            errorMessage={errorMessage}
+            multiplayerEnabled={multiplayerEnabled}
+            onMultiplayerChange={setMultiplayerEnabled}
+            onGenerate={handleGenerate}
+          />
         ) : screen === "loading" ? (
           <QuizLoadingScreen key="loading" />
         ) : screen === "review" && quiz && settings ? (
@@ -224,8 +243,8 @@ export function HeroSection() {
             settings={settings}
             onComplete={handleGameComplete}
           />
-        ) : screen === "resultsWaiting" && participantRoom.roomState ? (
-          <MultiplayerResultsWaiting key="resultsWaiting" room={participantRoom.roomState} />
+        ) : screen === "resultsWaiting" && (participantRoom.roomState || hostRoom.roomState) ? (
+          <MultiplayerResultsWaiting key="resultsWaiting" room={(participantRoom.roomState ?? hostRoom.roomState)!} />
         ) : screen === "results" && result ? (
           <QuizResultsScreen
             key="results"

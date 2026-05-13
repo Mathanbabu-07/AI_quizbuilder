@@ -24,7 +24,12 @@ async def connect(sid, environ):
 @sio.event
 async def create_room(sid, data):
     try:
-        room = await room_service.create_room(data.get("room_code"), sid)
+        room = await room_service.create_room(
+            data.get("room_code"),
+            sid,
+            quiz=data.get("quiz"),
+            settings=data.get("settings"),
+        )
         await sio.enter_room(sid, room.code)
         payload = room.model_dump()
         logger.info("room created code=%s host_sid=%s", room.code, sid)

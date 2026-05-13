@@ -10,7 +10,7 @@ type MultiplayerResultsWaitingProps = {
 
 export function MultiplayerResultsWaiting({ room }: MultiplayerResultsWaitingProps) {
   const finished = room.leaderboard.length;
-  const total = Math.max(1, room.participant_count);
+  const total = Math.max(1, room.participant_count + 1);
 
   return (
     <motion.section

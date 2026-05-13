@@ -24,14 +24,19 @@ function getResultMetrics(result: QuizResult) {
   };
 }
 
-export function useHostRoom(enabled: boolean, roomCode: string | null) {
+export function useHostRoom(
+  enabled: boolean,
+  roomCode: string | null,
+  quiz: GeneratedQuiz | null = null,
+  settings: QuizSettings | null = null
+) {
   const socketRef = useRef<RealtimeSocket | null>(null);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [status, setStatus] = useState<HostRoomStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !roomCode) {
+    if (!enabled || !roomCode || !quiz || !settings) {
       const socket = socketRef.current;
       if (socket) {
         socket.emit("close_room", { room_code: roomCode });
@@ -80,7 +85,7 @@ export function useHostRoom(enabled: boolean, roomCode: string | null) {
 
     socket.connect();
 
-    emitWithAckTimeout<RoomAck>(socket, "create_room", { room_code: roomCode })
+    emitWithAckTimeout<RoomAck>(socket, "create_room", { room_code: roomCode, quiz, settings })
       .then((ack) => {
         if (!ack.ok || !ack.room) {
           setStatus("error");
@@ -103,7 +108,7 @@ export function useHostRoom(enabled: boolean, roomCode: string | null) {
         socketRef.current = null;
       }
     };
-  }, [enabled, roomCode]);
+  }, [enabled, roomCode, quiz, settings]);
 
   const startRoom = useCallback(async (quiz: GeneratedQuiz, settings: QuizSettings) => {
     const socket = socketRef.current;
@@ -134,22 +139,22 @@ export function useHostRoom(enabled: boolean, roomCode: string | null) {
   const submitResult = useCallback(async (result: QuizResult) => {
     const socket = socketRef.current;
     if (!socket) {
-      return false;
+      return null;
     }
 
     try {
       const ack = await emitWithAckTimeout<RoomAck>(socket, "submit_result", getResultMetrics(result));
       if (!ack.ok) {
         setErrorMessage(ack.message ?? "Could not sync multiplayer results.");
-        return false;
+        return null;
       }
       if (ack.room) {
         setRoomState(ack.room);
       }
-      return true;
+      return ack.room ?? null;
     } catch {
       setErrorMessage("Realtime connection lost.");
-      return false;
+      return null;
     }
   }, []);
 

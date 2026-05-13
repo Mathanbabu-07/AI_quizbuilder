@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMotionValue, useSpring, type MotionValue } from "framer-motion";
+import { useEffect } from "react";
 
 type PointerParallax = {
-  x: number;
-  y: number;
+  x: MotionValue<number>;
+  y: MotionValue<number>;
 };
 
 export function usePointerParallax(strength = 1): PointerParallax {
-  const [position, setPosition] = useState<PointerParallax>({ x: 0, y: 0 });
+  const rawX = useMotionValue(0);
+  const rawY = useMotionValue(0);
+  const x = useSpring(rawX, { stiffness: 70, damping: 28, mass: 0.5 });
+  const y = useSpring(rawY, { stiffness: 70, damping: 28, mass: 0.5 });
 
   useEffect(() => {
     let frame = 0;
@@ -19,7 +23,8 @@ export function usePointerParallax(strength = 1): PointerParallax {
         const x = (event.clientX / window.innerWidth - 0.5) * strength;
         const y = (event.clientY / window.innerHeight - 0.5) * strength;
 
-        setPosition({ x, y });
+        rawX.set(x);
+        rawY.set(y);
       });
     };
 
@@ -29,7 +34,7 @@ export function usePointerParallax(strength = 1): PointerParallax {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", handlePointerMove);
     };
-  }, [strength]);
+  }, [rawX, rawY, strength]);
 
-  return position;
+  return { x, y };
 }

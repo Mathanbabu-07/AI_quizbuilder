@@ -165,7 +165,7 @@ export function useParticipantRoom() {
   const submitResult = useCallback(async (result: QuizResult) => {
     const socket = socketRef.current;
     if (!socket) {
-      return false;
+      return null;
     }
 
     const correct = result.answers.filter((answer) => answer.isCorrect).length;
@@ -183,15 +183,15 @@ export function useParticipantRoom() {
       });
       if (!ack.ok) {
         setErrorMessage(ack.message ?? "Could not sync multiplayer results.");
-        return false;
+        return null;
       }
       if (ack.room) {
         applyRoomState(ack.room);
       }
-      return true;
+      return ack.room ?? null;
     } catch {
       setErrorMessage("Realtime connection lost.");
-      return false;
+      return null;
     }
   }, [applyRoomState]);
 
