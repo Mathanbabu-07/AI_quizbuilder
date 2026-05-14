@@ -172,6 +172,7 @@ export function HeroSection() {
       setManualDraft({
         id: saved.id,
         title: saved.title,
+        targetQuestionCount: saved.question_count,
         questions: saved.questions.map((question, index) => ({
           question_text: question.question_text,
           question_type: question.question_type,
@@ -230,6 +231,7 @@ export function HeroSection() {
       const nextDraft = {
         id: saved.id,
         title: saved.title,
+        targetQuestionCount: payloadQuestions.length,
         questions: saved.questions.map((question, index) => ({ ...question, order_index: index }))
       };
 

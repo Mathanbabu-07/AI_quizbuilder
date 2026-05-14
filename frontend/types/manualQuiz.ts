@@ -40,6 +40,7 @@ export type SavedManualQuiz = SavedManualQuizSummary & {
 export type ManualQuizDraft = {
   id?: string;
   title: string;
+  targetQuestionCount?: number;
   questions: ManualQuizQuestion[];
 };
 

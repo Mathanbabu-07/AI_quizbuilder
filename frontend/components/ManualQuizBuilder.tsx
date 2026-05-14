@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronRight, Clock3, Save, Sparkles, Trophy } from "lucide-react";
+import { Check, ChevronRight, Clock3, Hash, Save, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { SavedQuizzesPanel } from "@/components/SavedQuizzesPanel";
@@ -44,6 +44,7 @@ export function ManualQuizBuilder({
 }: ManualQuizBuilderProps) {
   const [quizId, setQuizId] = useState<string | undefined>(initialDraft?.id);
   const [title, setTitle] = useState(initialDraft?.title ?? "Untitled GENQUIZ Arena");
+  const [targetQuestionCount, setTargetQuestionCount] = useState(String(initialDraft?.targetQuestionCount ?? 10));
   const [questions, setQuestions] = useState<ManualQuizQuestion[]>(initialDraft?.questions ?? []);
   const [current, setCurrent] = useState<CurrentQuestionState>(emptyQuestion);
   const [warning, setWarning] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export function ManualQuizBuilder({
 
     setQuizId(initialDraft.id);
     setTitle(initialDraft.title);
+    setTargetQuestionCount(String(initialDraft.targetQuestionCount ?? Math.max(10, initialDraft.questions.length || 10)));
     setQuestions(initialDraft.questions);
     setCurrent(emptyQuestion);
     setWarning(null);
@@ -71,13 +73,22 @@ export function ManualQuizBuilder({
     textarea.style.height = `${Math.min(340, Math.max(170, textarea.scrollHeight))}px`;
   }, [current.question_text]);
 
-  const questionCount = questions.length + (hasDraftContent(current) ? 1 : 0);
-  const readyToSave = questions.length > 0 || canConvertCurrent(current);
+  const targetCount = clampQuestionCount(Number(targetQuestionCount));
+  const currentIsComplete = canConvertCurrent(current);
+  const finalizedCount = questions.length + (currentIsComplete ? 1 : 0);
+  const atLimit = questions.length >= targetCount;
+  const readyToSave = finalizedCount === targetCount;
+  const saveNextDisabled = atLimit || saving;
 
   const draft = useMemo<ManualQuizDraft>(() => {
-    const finalized = canConvertCurrent(current) ? [...questions, toQuestion(current, questions.length)] : questions;
-    return { id: quizId, title: title.trim() || "Untitled GENQUIZ Arena", questions: finalized };
-  }, [current, questions, quizId, title]);
+    const finalized = currentIsComplete && questions.length < targetCount ? [...questions, toQuestion(current, questions.length)] : questions;
+    return {
+      id: quizId,
+      title: title.trim() || "Untitled GENQUIZ Arena",
+      targetQuestionCount: targetCount,
+      questions: finalized
+    };
+  }, [current, currentIsComplete, questions, quizId, targetCount, title]);
 
   const updateOption = (index: number, value: string) => {
     setCurrent((state) => ({
@@ -113,6 +124,11 @@ export function ManualQuizBuilder({
   };
 
   const saveNext = () => {
+    if (atLimit) {
+      setWarning("Question limit reached. Save the quiz to continue to host verification.");
+      return;
+    }
+
     const nextWarning = validateCurrent();
     if (nextWarning) {
       setWarning(nextWarning);
@@ -127,17 +143,22 @@ export function ManualQuizBuilder({
   const saveQuiz = async () => {
     let nextDraft = draft;
 
-    if (hasDraftContent(current)) {
+    if (hasDraftContent(current) && questions.length < targetCount) {
       const nextWarning = validateCurrent();
       if (nextWarning) {
         setWarning(nextWarning);
         return;
       }
-      nextDraft = { id: quizId, title: title.trim() || "Untitled GENQUIZ Arena", questions: [...questions, toQuestion(current, questions.length)] };
+      nextDraft = {
+        id: quizId,
+        title: title.trim() || "Untitled GENQUIZ Arena",
+        targetQuestionCount: targetCount,
+        questions: [...questions, toQuestion(current, questions.length)]
+      };
     }
 
-    if (nextDraft.questions.length === 0) {
-      setWarning("Create at least one complete question before saving the quiz.");
+    if (nextDraft.questions.length < targetCount) {
+      setWarning(`Finish ${targetCount - nextDraft.questions.length} more question${targetCount - nextDraft.questions.length === 1 ? "" : "s"} before saving.`);
       return;
     }
 
@@ -178,14 +199,40 @@ export function ManualQuizBuilder({
               </span>
             </label>
 
-            <div className="rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3 text-center">
-              <p className="font-display text-xs font-extrabold uppercase tracking-[0.18em] text-white/46">
-                Question Count
-              </p>
-              <p className="mt-1 font-display text-2xl font-extrabold text-white">
-                Question {Math.max(1, questions.length + 1)} / {Math.max(1, questionCount)}
-              </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:w-[24rem]">
+              <label className="rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3">
+                <span className="mb-2 flex items-center justify-center gap-2 font-display text-xs font-extrabold uppercase tracking-[0.18em] text-white/46">
+                  <Hash className="size-3.5 text-cyan-100/58" />
+                  Needed Count
+                </span>
+                <input
+                  value={targetQuestionCount}
+                  type="number"
+                  min={1}
+                  max={100}
+                  onChange={(event) => setTargetQuestionCount(event.target.value)}
+                  className="w-full bg-transparent text-center font-display text-2xl font-extrabold text-white outline-none"
+                />
+              </label>
+
+              <div className="rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3 text-center">
+                <p className="font-display text-xs font-extrabold uppercase tracking-[0.18em] text-white/46">
+                  Progress
+                </p>
+                <p className="mt-1 font-display text-2xl font-extrabold text-white">
+                  {Math.min(finalizedCount, targetCount)} / {targetCount}
+                </p>
+              </div>
             </div>
+          </div>
+
+          <div className="mb-6 h-2 overflow-hidden rounded-full bg-white/10">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-violet-200 to-fuchsia-200"
+              initial={false}
+              animate={{ width: `${Math.min(100, (finalizedCount / targetCount) * 100)}%` }}
+              transition={{ duration: 0.32, ease: "easeOut" }}
+            />
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[13rem_minmax(0,1fr)]">
@@ -196,7 +243,7 @@ export function ManualQuizBuilder({
                 disabled={!readyToSave || saving}
                 className={`rounded-2xl border px-4 py-4 font-display text-xs font-extrabold uppercase tracking-[0.16em] transition-all duration-300 ${
                   readyToSave
-                    ? "border-cyan-100/34 bg-cyan-100/12 text-cyan-50 shadow-[0_0_34px_rgba(103,232,249,0.18)]"
+                    ? "animate-pulse border-cyan-100/44 bg-cyan-100/14 text-cyan-50 shadow-[0_0_42px_rgba(103,232,249,0.28)]"
                     : "border-white/10 bg-white/[0.035] text-white/34"
                 }`}
               >
@@ -206,10 +253,11 @@ export function ManualQuizBuilder({
               <button
                 type="button"
                 onClick={saveNext}
-                className="rounded-2xl border border-white/12 bg-white/[0.055] px-4 py-4 font-display text-xs font-extrabold uppercase tracking-[0.16em] text-white/72 transition-colors hover:border-fuchsia-100/30 hover:text-white"
+                disabled={saveNextDisabled}
+                className="rounded-2xl border border-white/12 bg-white/[0.055] px-4 py-4 font-display text-xs font-extrabold uppercase tracking-[0.16em] text-white/72 transition-colors hover:border-fuchsia-100/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronRight className="mx-auto mb-2 size-5" />
-                Save & Next
+                {atLimit ? "Limit Reached" : "Save & Next"}
               </button>
               <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-xs font-semibold leading-relaxed text-white/42">
                 <Sparkles className="mb-2 size-4 text-cyan-100/62" />
@@ -302,7 +350,7 @@ export function ManualQuizBuilder({
           <div className="mt-7 flex justify-center">
             <AnimatedButton onClick={saveQuiz} disabled={!readyToSave || saving}>
               <Save className="mr-3 size-4" />
-              {saving ? "Saving Quiz" : "Save Quiz"}
+              {saving ? "Saving Quiz" : readyToSave ? "Save Quiz" : `Finish ${Math.max(0, targetCount - finalizedCount)} More`}
             </AnimatedButton>
           </div>
         </div>
@@ -371,4 +419,12 @@ function toQuestion(question: CurrentQuestionState, index: number): ManualQuizQu
     time_limit: Math.max(5, Number(question.time_limit)),
     order_index: index
   };
+}
+
+function clampQuestionCount(value: number) {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.min(100, Math.max(1, Math.floor(value)));
 }
