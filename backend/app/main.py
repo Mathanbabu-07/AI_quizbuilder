@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
 
+from app.api.manual_quizzes import router as manual_quizzes_router
 from app.api.quiz import router as quiz_router
 from app.core.config import get_settings
 from app.sockets.server import sio
@@ -39,6 +40,7 @@ fastapi_app.add_middleware(
 )
 
 fastapi_app.include_router(quiz_router)
+fastapi_app.include_router(manual_quizzes_router)
 
 
 @fastapi_app.middleware("http")

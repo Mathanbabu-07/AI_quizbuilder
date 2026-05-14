@@ -44,6 +44,17 @@ FRONTEND_URLS=https://your-vercel-frontend.example.com
 
 `FRONTEND_URLS` accepts comma-separated origins if you need preview domains.
 
+## Supabase Schema
+
+Before using the manual quiz builder, run this SQL file in the Supabase SQL editor:
+
+```text
+supabase/schema.sql
+```
+
+The backend stores and reads manual quizzes through `SUPABASE_SERVICE_ROLE_KEY`.
+Saved quizzes are filtered by a device-scoped `host_id`, so one browser/device will not list another device's saved quizzes.
+
 ## Health Check
 
 Backend health endpoint:

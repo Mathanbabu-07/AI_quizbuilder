@@ -17,6 +17,10 @@ type QuizReviewPanelProps = {
   hostRoom: HostRoomController;
   onMultiplayerToggle: (enabled: boolean) => void;
   onStart: () => void;
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
 };
 
 export function QuizReviewPanel({
@@ -26,7 +30,8 @@ export function QuizReviewPanel({
   roomCode,
   hostRoom,
   onMultiplayerToggle,
-  onStart
+  onStart,
+  secondaryAction
 }: QuizReviewPanelProps) {
   const multiplayerReady = !multiplayerEnabled || (hostRoom.status === "active" && Boolean(hostRoom.roomState?.quiz));
 
@@ -112,10 +117,21 @@ export function QuizReviewPanel({
         </div>
 
         <div className="order-5 sticky bottom-5 mt-4 flex justify-center xl:col-start-2">
-          <AnimatedButton onClick={onStart} disabled={!multiplayerReady}>
-            <Play className="mr-3 size-4" />
-            {multiplayerReady ? "Start Quiz" : "Syncing Arena"}
-          </AnimatedButton>
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            {secondaryAction ? (
+              <button
+                type="button"
+                onClick={secondaryAction.onClick}
+                className="h-12 rounded-2xl border border-white/12 bg-white/[0.055] px-5 font-display text-xs font-extrabold uppercase tracking-[0.14em] text-white/64 backdrop-blur-xl transition-colors hover:border-cyan-100/26 hover:text-white"
+              >
+                {secondaryAction.label}
+              </button>
+            ) : null}
+            <AnimatedButton onClick={onStart} disabled={!multiplayerReady}>
+              <Play className="mr-3 size-4" />
+              {multiplayerReady ? "Start Now" : "Syncing Arena"}
+            </AnimatedButton>
+          </div>
         </div>
       </div>
     </motion.section>

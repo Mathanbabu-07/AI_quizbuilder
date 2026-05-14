@@ -8,7 +8,9 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { CreateQuizPanel } from "@/components/CreateQuizPanel";
 import { FloatingTitle } from "@/components/FloatingTitle";
 import { JoinQuizModal } from "@/components/JoinQuizModal";
+import { ManualQuizBuilder } from "@/components/ManualQuizBuilder";
 import { NavigationBar } from "@/components/NavigationBar";
+import { QuestionTypeSelection } from "@/components/QuestionTypeSelection";
 import { QuizGameScreen } from "@/components/QuizGameScreen";
 import { QuizLoadingScreen } from "@/components/QuizLoadingScreen";
 import { QuizResultsScreen } from "@/components/QuizResultsScreen";
@@ -16,13 +18,33 @@ import { QuizReviewPanel } from "@/components/QuizReviewPanel";
 import { WaitingRoom } from "@/components/WaitingRoom";
 import { MultiplayerResultsWaiting } from "@/components/MultiplayerResultsWaiting";
 import { generateRoomCode } from "@/components/RoomCodeGenerator";
+import { useDeviceHostId } from "@/hooks/useDeviceHostId";
 import { useHostRoom } from "@/hooks/useHostRoom";
 import { useParticipantRoom } from "@/hooks/useParticipantRoom";
+import { deleteManualQuiz, getManualQuiz, listManualQuizzes, saveManualQuiz } from "@/lib/manualQuizApi";
 import { generateQuiz } from "@/lib/quizApi";
+import {
+  manualQuizToGeneratedQuiz,
+  manualQuizToSettings,
+  type ManualQuizDraft,
+  type ManualQuizQuestion,
+  type ManualQuestionType,
+  type SavedManualQuizSummary
+} from "@/types/manualQuiz";
 import type { GeneratedQuiz, QuizResult, QuizSettings } from "@/types/quiz";
 import { CreateButton } from "@/ui/CreateButton";
 
-type Screen = "home" | "create" | "loading" | "review" | "game" | "results" | "waiting" | "resultsWaiting";
+type Screen =
+  | "home"
+  | "questionTypes"
+  | "manualMcq"
+  | "create"
+  | "loading"
+  | "review"
+  | "game"
+  | "results"
+  | "waiting"
+  | "resultsWaiting";
 
 export function HeroSection() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -33,6 +55,11 @@ export function HeroSection() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [multiplayerEnabled, setMultiplayerEnabled] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [manualDraft, setManualDraft] = useState<ManualQuizDraft | null>(null);
+  const [savedQuizzes, setSavedQuizzes] = useState<SavedManualQuizSummary[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [manualSaving, setManualSaving] = useState(false);
+  const hostId = useDeviceHostId();
   const hostRoom = useHostRoom(multiplayerEnabled, roomCode, quiz, settings);
   const participantRoom = useParticipantRoom();
   const aboutRef = useRef<HTMLElement | null>(null);
@@ -54,6 +81,18 @@ export function HeroSection() {
       setScreen("results");
     }
   }, [hostRoom.roomState, participantRoom.roomState, result, screen]);
+
+  useEffect(() => {
+    if (!hostId || !["questionTypes", "manualMcq"].includes(screen)) {
+      return;
+    }
+
+    setSavedLoading(true);
+    listManualQuizzes(hostId)
+      .then(setSavedQuizzes)
+      .catch((error) => setErrorMessage(error instanceof Error ? error.message : "Could not load saved quizzes."))
+      .finally(() => setSavedLoading(false));
+  }, [hostId, screen]);
 
   const handleGenerate = async (nextSettings: QuizSettings) => {
     if (nextSettings.prompt.length < 3) {
@@ -88,8 +127,9 @@ export function HeroSection() {
     setErrorMessage(null);
     setMultiplayerEnabled(false);
     setRoomCode(null);
+    setManualDraft(null);
     participantRoom.leaveRoom();
-    setScreen("create");
+    setScreen("questionTypes");
   };
 
   const showAbout = () => {
@@ -111,6 +151,103 @@ export function HeroSection() {
     return joined;
   };
 
+  const openManualBuilder = (type: ManualQuestionType) => {
+    if (type !== "mcq") {
+      return;
+    }
+
+    setManualDraft(null);
+    setErrorMessage(null);
+    setScreen("manualMcq");
+  };
+
+  const openSavedQuiz = async (quizId: string) => {
+    if (!hostId) {
+      setErrorMessage("Saved quizzes are still preparing on this device.");
+      return;
+    }
+
+    try {
+      const saved = await getManualQuiz(quizId, hostId);
+      setManualDraft({
+        id: saved.id,
+        title: saved.title,
+        questions: saved.questions.map((question, index) => ({
+          question_text: question.question_text,
+          question_type: question.question_type,
+          options: question.options,
+          correct_answers: question.correct_answers,
+          points: question.points,
+          time_limit: question.time_limit,
+          order_index: index
+        }))
+      });
+      setErrorMessage(null);
+      setScreen("manualMcq");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not open saved quiz.");
+    }
+  };
+
+  const removeSavedQuiz = async (quizId: string) => {
+    if (!hostId) {
+      return;
+    }
+
+    try {
+      await deleteManualQuiz(quizId, hostId);
+      setSavedQuizzes((items) => items.filter((item) => item.id !== quizId));
+      if (manualDraft?.id === quizId) {
+        setManualDraft(null);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not delete saved quiz.");
+    }
+  };
+
+  const saveManualDraft = async (draft: ManualQuizDraft) => {
+    if (!hostId) {
+      setErrorMessage("This device profile is still preparing. Try again in a moment.");
+      return;
+    }
+
+    setManualSaving(true);
+    try {
+      const payloadQuestions: ManualQuizQuestion[] = draft.questions.map((question, index) => ({
+        ...question,
+        order_index: index
+      }));
+      const saved = await saveManualQuiz(
+        {
+          host_id: hostId,
+          title: draft.title,
+          mode: "manual",
+          status: "ready",
+          questions: payloadQuestions
+        },
+        draft.id
+      );
+      const nextDraft = {
+        id: saved.id,
+        title: saved.title,
+        questions: saved.questions.map((question, index) => ({ ...question, order_index: index }))
+      };
+
+      setManualDraft(nextDraft);
+      setQuiz(manualQuizToGeneratedQuiz(nextDraft));
+      setSettings(manualQuizToSettings(nextDraft));
+      setMultiplayerEnabled(true);
+      setRoomCode(generateRoomCode());
+      setScreen("review");
+      setSavedQuizzes((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not save manual quiz.");
+    } finally {
+      setManualSaving(false);
+    }
+  };
+
   const leaveWaitingRoom = () => {
     participantRoom.leaveRoom();
     setScreen("home");
@@ -119,6 +256,12 @@ export function HeroSection() {
   const handleMultiplayerToggle = (enabled: boolean) => {
     setMultiplayerEnabled(enabled);
     setRoomCode(enabled ? generateRoomCode() : null);
+  };
+
+  const handleSaveStartLater = () => {
+    setMultiplayerEnabled(false);
+    setRoomCode(null);
+    setScreen("questionTypes");
   };
 
   const handleStartQuiz = async () => {
@@ -164,7 +307,7 @@ export function HeroSection() {
 
   return (
     <div className="relative z-10 min-h-svh">
-      <NavigationBar onCreateQuiz={() => setScreen("create")} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
+      <NavigationBar onCreateQuiz={() => setScreen("questionTypes")} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
 
       <JoinQuizModal
         open={joinModalOpen}
@@ -201,12 +344,32 @@ export function HeroSection() {
                 </motion.p>
 
                 <motion.div className="mt-8 sm:mt-12" variants={heroItem}>
-                  <CreateButton onClick={() => setScreen("create")} />
+                  <CreateButton onClick={() => setScreen("questionTypes")} />
                 </motion.div>
               </motion.div>
             </section>
             <AboutGQSection sectionRef={aboutRef} />
           </motion.div>
+        ) : screen === "questionTypes" ? (
+          <QuestionTypeSelection
+            key="questionTypes"
+            savedQuizzes={savedQuizzes}
+            loadingSaved={savedLoading}
+            onSelect={openManualBuilder}
+            onOpenSaved={openSavedQuiz}
+            onDeleteSaved={removeSavedQuiz}
+          />
+        ) : screen === "manualMcq" ? (
+          <ManualQuizBuilder
+            key={manualDraft?.id ?? "newManualQuiz"}
+            initialDraft={manualDraft}
+            savedQuizzes={savedQuizzes}
+            loadingSaved={savedLoading}
+            saving={manualSaving}
+            onOpenSaved={openSavedQuiz}
+            onDeleteSaved={removeSavedQuiz}
+            onSaveQuiz={saveManualDraft}
+          />
         ) : screen === "create" ? (
           <CreateQuizPanel
             key="create"
@@ -227,6 +390,14 @@ export function HeroSection() {
             hostRoom={hostRoom}
             onMultiplayerToggle={handleMultiplayerToggle}
             onStart={handleStartQuiz}
+            secondaryAction={
+              manualDraft
+                ? {
+                    label: "Save & Start Later",
+                    onClick: handleSaveStartLater
+                  }
+                : undefined
+            }
           />
         ) : screen === "waiting" && participantRoom.roomState && participantRoom.participantId ? (
           <WaitingRoom
