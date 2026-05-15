@@ -12,11 +12,42 @@ function getApiBaseUrl() {
 
 async function readError(response: Response) {
   try {
-    const payload = (await response.json()) as { detail?: string };
-    return payload.detail ?? `Request failed with status ${response.status}.`;
+    const payload = (await response.json()) as { detail?: unknown };
+    return normalizeDetail(payload.detail) ?? `Request failed with status ${response.status}.`;
   } catch {
     return `Request failed with status ${response.status}.`;
   }
+}
+
+function normalizeDetail(detail: unknown): string | null {
+  if (!detail) {
+    return null;
+  }
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") {
+          return item;
+        }
+        if (item && typeof item === "object" && "msg" in item && typeof item.msg === "string") {
+          return item.msg;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  if (typeof detail === "object") {
+    return JSON.stringify(detail);
+  }
+
+  return String(detail);
 }
 
 export async function listManualQuizzes(hostId: string): Promise<SavedManualQuizSummary[]> {

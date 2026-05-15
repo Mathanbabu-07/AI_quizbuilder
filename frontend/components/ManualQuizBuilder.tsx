@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronRight, Clock3, Hash, Save, Sparkles, Trophy } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Clock3, Hash, Save, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { SavedQuizzesPanel } from "@/components/SavedQuizzesPanel";
@@ -12,6 +12,7 @@ type ManualQuizBuilderProps = {
   savedQuizzes: SavedManualQuizSummary[];
   loadingSaved: boolean;
   saving: boolean;
+  errorMessage?: string | null;
   onOpenSaved: (quizId: string) => void;
   onDeleteSaved: (quizId: string) => void;
   onSaveQuiz: (draft: ManualQuizDraft) => Promise<void> | void;
@@ -38,6 +39,7 @@ export function ManualQuizBuilder({
   savedQuizzes,
   loadingSaved,
   saving,
+  errorMessage,
   onOpenSaved,
   onDeleteSaved,
   onSaveQuiz
@@ -79,6 +81,8 @@ export function ManualQuizBuilder({
   const atLimit = questions.length >= targetCount;
   const readyToSave = finalizedCount === targetCount;
   const saveNextDisabled = atLimit || saving;
+  const statusMessage = warning ?? errorMessage;
+  const isBackendError = Boolean(errorMessage && !warning);
 
   const draft = useMemo<ManualQuizDraft>(() => {
     const finalized = currentIsComplete && questions.length < targetCount ? [...questions, toQuestion(current, questions.length)] : questions;
@@ -335,14 +339,19 @@ export function ManualQuizBuilder({
           </div>
 
           <AnimatePresence>
-            {warning ? (
+            {statusMessage ? (
               <motion.p
-                className="mt-5 rounded-2xl border border-amber-100/20 bg-amber-100/[0.08] px-4 py-3 text-center text-sm font-semibold text-amber-50"
+                className={`mt-5 flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-center text-sm font-semibold ${
+                  isBackendError
+                    ? "border-rose-100/24 bg-rose-100/[0.08] text-rose-50"
+                    : "border-amber-100/20 bg-amber-100/[0.08] text-amber-50"
+                }`}
                 initial={{ opacity: 0, y: 8, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
               >
-                {warning}
+                {isBackendError ? <AlertCircle className="size-4 shrink-0" /> : null}
+                {statusMessage}
               </motion.p>
             ) : null}
           </AnimatePresence>

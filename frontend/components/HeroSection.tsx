@@ -213,6 +213,7 @@ export function HeroSection() {
     }
 
     setManualSaving(true);
+    setErrorMessage(null);
     try {
       const payloadQuestions: ManualQuizQuestion[] = draft.questions.map((question, index) => ({
         ...question,
@@ -368,6 +369,7 @@ export function HeroSection() {
             savedQuizzes={savedQuizzes}
             loadingSaved={savedLoading}
             saving={manualSaving}
+            errorMessage={errorMessage}
             onOpenSaved={openSavedQuiz}
             onDeleteSaved={removeSavedQuiz}
             onSaveQuiz={saveManualDraft}
