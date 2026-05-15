@@ -232,9 +232,9 @@ export function ManualQuizBuilder({
 
           <div className="mb-6 h-2 overflow-hidden rounded-full bg-white/10">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-violet-200 to-fuchsia-200"
+              className="h-full origin-left rounded-full bg-gradient-to-r from-cyan-200 via-violet-200 to-fuchsia-200 will-change-transform"
               initial={false}
-              animate={{ width: `${Math.min(100, (finalizedCount / targetCount) * 100)}%` }}
+              animate={{ scaleX: Math.min(1, finalizedCount / targetCount) }}
               transition={{ duration: 0.32, ease: "easeOut" }}
             />
           </div>

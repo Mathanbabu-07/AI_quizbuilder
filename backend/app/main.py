@@ -9,6 +9,7 @@ import socketio
 from app.api.manual_quizzes import router as manual_quizzes_router
 from app.api.quiz import router as quiz_router
 from app.core.config import get_settings
+from app.services.supabase_client import get_supabase_diagnostics
 from app.sockets.server import sio
 
 settings = get_settings()
@@ -26,6 +27,7 @@ async def lifespan(app: FastAPI):
     logger.info("GENQUIZ backend ready")
     logger.info("FastAPI routes registered: %s", route_summary)
     logger.info("Socket.IO ASGI endpoint mounted at /socket.io")
+    logger.info("Supabase diagnostics: %s", get_supabase_diagnostics())
     yield
 
 
@@ -65,7 +67,7 @@ async def health(request: Request):
     if request.method == "HEAD":
         return Response(status_code=200)
 
-    return {"status": "ok"}
+    return {"status": "ok", "supabase": get_supabase_diagnostics()}
 
 
 socket_app = socketio.ASGIApp(

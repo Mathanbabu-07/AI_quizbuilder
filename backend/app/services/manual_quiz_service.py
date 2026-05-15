@@ -22,7 +22,7 @@ class ManualQuizService:
             logger.exception("manual quiz list failed host_id=%s", host_id)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Saved quizzes could not be loaded. Check Supabase configuration.",
+                detail=f"Saved quizzes could not be loaded. {self._safe_error(exc)}",
             ) from exc
 
     async def get_quiz(self, quiz_id: str, host_id: str) -> dict[str, Any]:
@@ -34,7 +34,7 @@ class ManualQuizService:
             logger.exception("manual quiz fetch failed quiz_id=%s host_id=%s", quiz_id, host_id)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Saved quiz could not be opened. Check Supabase configuration.",
+                detail=f"Saved quiz could not be opened. {self._safe_error(exc)}",
             ) from exc
 
     async def save_quiz(self, request: ManualQuizSaveRequest, quiz_id: str | None = None) -> dict[str, Any]:
@@ -46,7 +46,7 @@ class ManualQuizService:
             logger.exception("manual quiz save failed quiz_id=%s host_id=%s", quiz_id, request.host_id)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Quiz could not be saved to Supabase. Verify the manual quiz tables and backend keys.",
+                detail=f"Quiz could not be saved to Supabase. {self._safe_error(exc)}",
             ) from exc
 
     async def delete_quiz(self, quiz_id: str, host_id: str) -> None:
@@ -58,7 +58,7 @@ class ManualQuizService:
             logger.exception("manual quiz delete failed quiz_id=%s host_id=%s", quiz_id, host_id)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Saved quiz could not be deleted. Check Supabase configuration.",
+                detail=f"Saved quiz could not be deleted. {self._safe_error(exc)}",
             ) from exc
 
     def _list_quizzes_sync(self, host_id: str) -> list[dict[str, Any]]:
@@ -103,6 +103,13 @@ class ManualQuizService:
 
     def _save_quiz_sync(self, request: ManualQuizSaveRequest, quiz_id: str | None) -> dict[str, Any]:
         client = get_supabase_client()
+        logger.info(
+            "manual quiz save requested host_id=%s quiz_id=%s title=%s questions=%s",
+            request.host_id,
+            quiz_id or "new",
+            request.title,
+            len(request.questions),
+        )
         quiz_payload = {
             "title": request.title.strip(),
             "host_id": request.host_id,
@@ -130,6 +137,7 @@ class ManualQuizService:
         else:
             quiz_response = client.table("quizzes").insert(quiz_payload).execute()
             saved_quiz = (quiz_response.data or [None])[0]
+            logger.info("manual quiz inserted quiz_id=%s host_id=%s", saved_quiz.get("id") if saved_quiz else None, request.host_id)
 
         if not saved_quiz:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not save quiz.")
@@ -150,6 +158,7 @@ class ManualQuizService:
 
         if question_rows:
             client.table("quiz_questions").insert(question_rows).execute()
+            logger.info("manual quiz questions inserted quiz_id=%s count=%s", saved_quiz["id"], len(question_rows))
 
         try:
             client.table("saved_quizzes").upsert(
@@ -198,6 +207,18 @@ class ManualQuizService:
             .execute()
         )
         return (response.data or [None])[0]
+
+    @staticmethod
+    def _safe_error(exc: Exception) -> str:
+        raw_message = str(exc).strip()
+        if not raw_message:
+            raw_message = exc.__class__.__name__
+
+        redacted = raw_message.replace("\n", " ")
+        for marker in ("eyJ", "Bearer "):
+            if marker in redacted:
+                redacted = redacted.split(marker)[0].strip() or "Supabase rejected the request."
+        return redacted[:360]
 
 
 manual_quiz_service = ManualQuizService()

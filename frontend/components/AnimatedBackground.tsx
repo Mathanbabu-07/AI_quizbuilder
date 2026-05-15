@@ -80,10 +80,8 @@ export function AnimatedBackground() {
 
   return (
     <div className="pointer-events-none absolute inset-0 isolate overflow-hidden" aria-hidden="true">
-      <motion.div
+      <div
         className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(20,184,166,0.2),transparent_32%),radial-gradient(circle_at_82%_72%,rgba(192,132,252,0.14),transparent_32%),linear-gradient(130deg,#060812_0%,#0a1428_42%,#150a1d_100%)]"
-        animate={motionEnabled ? { filter: ["hue-rotate(0deg)", "hue-rotate(8deg)", "hue-rotate(0deg)"] } : false}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
       <div className="hidden sm:block">
         <AmbientGlowLayer />
@@ -126,10 +124,10 @@ export function AnimatedBackground() {
         style={motionEnabled ? { x: particleX, y: particleY } : undefined}
         transition={{ type: "spring", stiffness: 90, damping: 28 }}
       >
-        {particles.map((particle) => (
+        {particles.map((particle, index) => (
           <motion.span
             key={`${particle.x}-${particle.y}`}
-            className="absolute rounded-full bg-cyan-100 shadow-[0_0_18px_rgba(103,232,249,0.85)]"
+            className={`absolute rounded-full bg-cyan-100 shadow-[0_0_18px_rgba(103,232,249,0.85)] will-change-transform ${index > 13 ? "hidden sm:block" : ""}`}
             style={{
               left: particle.x,
               top: particle.y,
@@ -163,7 +161,7 @@ export function AnimatedBackground() {
         {glowParticles.map((particle) => (
           <motion.span
             key={`${particle.x}-${particle.y}-glow`}
-            className={`absolute rounded-full blur-xl ${particle.color}`}
+            className={`absolute hidden rounded-full blur-xl will-change-transform sm:block ${particle.color}`}
             style={{
               left: particle.x,
               top: particle.y,
@@ -193,7 +191,7 @@ export function AnimatedBackground() {
       {arenaGlyphs.map(({ Icon, x, y, color, delay }) => (
         <motion.div
           key={`${x}-${y}`}
-          className={`absolute ${color}`}
+          className={`absolute will-change-transform ${color}`}
           style={{ left: x, top: y }}
           animate={
             motionEnabled
