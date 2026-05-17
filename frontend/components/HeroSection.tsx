@@ -9,7 +9,6 @@ import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { CreateQuizPanel } from "@/components/CreateQuizPanel";
 import { FloatingTitle } from "@/components/FloatingTitle";
 import { JoinQuizModal } from "@/components/JoinQuizModal";
-import { LandingOrbitBackground } from "@/components/LandingOrbitBackground";
 import { ManualQuizBuilder } from "@/components/ManualQuizBuilder";
 import { NavigationBar } from "@/components/NavigationBar";
 import { QuestionTypeSelection } from "@/components/QuestionTypeSelection";
@@ -471,7 +470,6 @@ export function HeroSection() {
             transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
           >
             <section className="relative isolate flex min-h-[100svh] items-start justify-center overflow-hidden px-4 pb-14 pt-[11rem] sm:min-h-svh sm:items-center sm:px-8 sm:py-24">
-              <LandingOrbitBackground />
               <motion.div
                 className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center"
                 variants={heroContainer}
