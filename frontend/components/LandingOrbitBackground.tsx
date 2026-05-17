@@ -245,7 +245,7 @@ export function LandingOrbitBackground() {
             <circle r="118" fill="url(#coreRadial)" opacity="0.24" filter="url(#softCoreGlow)" />
           </motion.g>
 
-          <RotatingLayer duration={54} direction={1}>
+          <RotatingLayer duration={58} direction={1}>
             <circle r="410" fill="none" stroke="#38bdf8" strokeWidth="1.4" opacity="0.34" />
             <circle r="386" fill="none" stroke="#2563eb" strokeWidth="1.1" opacity="0.28" strokeDasharray="3 18" />
             {outerArcSegments.map((segment) => (
@@ -253,7 +253,7 @@ export function LandingOrbitBackground() {
             ))}
           </RotatingLayer>
 
-          <RotatingLayer duration={32} direction={-1} opacity={0.96}>
+          <RotatingLayer duration={34} direction={-1} opacity={0.96}>
             <circle r="350" fill="none" stroke="#60a5fa" strokeWidth="2" opacity="0.28" strokeDasharray="38 22" />
             <circle r="326" fill="none" stroke="#a78bfa" strokeWidth="1.25" opacity="0.2" />
             {secondaryArcSegments.map((segment) => (
@@ -261,7 +261,7 @@ export function LandingOrbitBackground() {
             ))}
           </RotatingLayer>
 
-          <RotatingLayer duration={21} direction={1} opacity={0.86}>
+          <RotatingLayer duration={22} direction={1} opacity={0.86}>
             <circle r="282" fill="none" stroke="#22d3ee" strokeWidth="1.2" opacity="0.26" strokeDasharray="2 12" />
             <circle r="248" fill="none" stroke="#2563eb" strokeWidth="16" opacity="0.1" strokeDasharray="28 16" />
             {innerDigitalSegments.map((segment) => (
@@ -269,7 +269,7 @@ export function LandingOrbitBackground() {
             ))}
           </RotatingLayer>
 
-          <RotatingLayer duration={13.5} direction={-1} opacity={0.82}>
+          <RotatingLayer duration={14} direction={-1} opacity={0.82}>
             <circle r="154" fill="none" stroke="#22d3ee" strokeWidth="5" opacity="0.56" strokeDasharray="9 8" filter="url(#orbitGlow)" />
             <circle r="134" fill="none" stroke="#a78bfa" strokeWidth="1.4" opacity="0.42" />
             {tickMarks.map((tick) => {
@@ -325,7 +325,7 @@ export function LandingOrbitBackground() {
             />
           ))}
 
-          <RotatingLayer duration={8} direction={1} opacity={0.82}>
+          <RotatingLayer duration={8.5} direction={1} opacity={0.82}>
             <circle r="102" fill="none" stroke="#38bdf8" strokeWidth="1.25" opacity="0.52" strokeDasharray="3 9" />
             <circle r="86" fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.34" />
             {coreTickMarks.map((tick) => {
