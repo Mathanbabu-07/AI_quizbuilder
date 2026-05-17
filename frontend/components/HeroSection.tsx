@@ -219,13 +219,21 @@ export function HeroSection() {
         ...question,
         order_index: index
       }));
+      const nextRoomCode = generateRoomCode();
       const saved = await saveManualQuiz(
         {
           host_id: hostId,
           title: draft.title,
-          mode: "manual",
-          status: "ready",
-          questions: payloadQuestions
+          questionType: "mcq",
+          multiplayer: true,
+          roomCode: nextRoomCode,
+          questions: payloadQuestions.map((question) => ({
+            question: question.question_text,
+            options: question.options,
+            correctAnswer: question.correct_answers[0] ?? question.options[0] ?? "",
+            timePerQuestion: question.time_limit,
+            points: question.points
+          }))
         },
         draft.id
       );
@@ -240,7 +248,7 @@ export function HeroSection() {
       setQuiz(manualQuizToGeneratedQuiz(nextDraft));
       setSettings(manualQuizToSettings(nextDraft));
       setMultiplayerEnabled(true);
-      setRoomCode(generateRoomCode());
+      setRoomCode(saved.room_code ?? nextRoomCode);
       setScreen("review");
       setSavedQuizzes((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
       setErrorMessage(null);

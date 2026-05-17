@@ -56,10 +56,13 @@ export async function listManualQuizzes(hostId: string): Promise<SavedManualQuiz
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    const message = await readError(response);
+    console.error("[GENQUIZ] saved quiz list failed", { status: response.status, message });
+    throw new Error(message);
   }
 
   const payload = (await response.json()) as { quizzes: SavedManualQuizSummary[] };
+  console.debug("[GENQUIZ] saved quizzes loaded", { count: payload.quizzes.length });
   return payload.quizzes;
 }
 
@@ -70,13 +73,24 @@ export async function getManualQuiz(quizId: string, hostId: string): Promise<Sav
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    const message = await readError(response);
+    console.error("[GENQUIZ] saved quiz open failed", { status: response.status, quizId, message });
+    throw new Error(message);
   }
 
-  return (await response.json()) as SavedManualQuiz;
+  const saved = (await response.json()) as SavedManualQuiz;
+  console.debug("[GENQUIZ] saved quiz opened", { quizId: saved.id, questions: saved.questions.length });
+  return saved;
 }
 
 export async function saveManualQuiz(payload: ManualQuizSavePayload, quizId?: string): Promise<SavedManualQuiz> {
+  console.debug("[GENQUIZ] saving manual quiz", {
+    quizId: quizId ?? "new",
+    title: payload.title,
+    questions: payload.questions.length,
+    roomCode: payload.roomCode
+  });
+
   const response = await fetch(`${getApiBaseUrl()}/api/manual-quizzes${quizId ? `/${encodeURIComponent(quizId)}` : ""}`, {
     method: quizId ? "PUT" : "POST",
     headers: {
@@ -86,10 +100,14 @@ export async function saveManualQuiz(payload: ManualQuizSavePayload, quizId?: st
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    const message = await readError(response);
+    console.error("[GENQUIZ] manual quiz save failed", { status: response.status, message });
+    throw new Error(message);
   }
 
-  return (await response.json()) as SavedManualQuiz;
+  const saved = (await response.json()) as SavedManualQuiz;
+  console.debug("[GENQUIZ] manual quiz saved", { quizId: saved.id, questions: saved.questions.length, roomCode: saved.room_code });
+  return saved;
 }
 
 export async function deleteManualQuiz(quizId: string, hostId: string): Promise<void> {
@@ -99,6 +117,8 @@ export async function deleteManualQuiz(quizId: string, hostId: string): Promise<
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    const message = await readError(response);
+    console.error("[GENQUIZ] saved quiz delete failed", { status: response.status, quizId, message });
+    throw new Error(message);
   }
 }

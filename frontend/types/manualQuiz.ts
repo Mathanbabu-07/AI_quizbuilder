@@ -16,9 +16,16 @@ export type ManualQuizQuestion = {
 export type ManualQuizSavePayload = {
   host_id: string;
   title: string;
-  mode: "manual";
-  status: ManualQuizStatus;
-  questions: ManualQuizQuestion[];
+  questionType: ManualQuestionType;
+  multiplayer: boolean;
+  roomCode?: string | null;
+  questions: Array<{
+    question: string;
+    options: string[];
+    correctAnswer: string;
+    timePerQuestion: number;
+    points: number;
+  }>;
 };
 
 export type SavedManualQuizSummary = {
@@ -28,6 +35,9 @@ export type SavedManualQuizSummary = {
   question_count: number;
   mode: string;
   status: ManualQuizStatus;
+  question_type?: ManualQuestionType;
+  multiplayer?: boolean;
+  room_code?: string | null;
   created_at: string | null;
   updated_at: string | null;
   last_edited?: string | null;

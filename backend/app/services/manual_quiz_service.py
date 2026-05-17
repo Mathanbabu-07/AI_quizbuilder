@@ -64,149 +64,183 @@ class ManualQuizService:
     def _list_quizzes_sync(self, host_id: str) -> list[dict[str, Any]]:
         client = get_supabase_client()
         response = (
-            client.table("quizzes")
-            .select("id,title,host_id,question_count,mode,status,created_at,updated_at")
+            client.table("manual_quizzes")
+            .select("id,title,host_id,question_type,total_questions,multiplayer,room_code,created_at,updated_at")
             .eq("host_id", host_id)
-            .neq("status", "archived")
             .order("updated_at", desc=True)
             .limit(30)
             .execute()
         )
-        return response.data or []
+        quizzes = [self._map_quiz_summary(row) for row in response.data or []]
+        logger.info("manual quizzes loaded host_id=%s count=%s", host_id, len(quizzes))
+        return quizzes
 
     def _get_quiz_sync(self, quiz_id: str, host_id: str) -> dict[str, Any]:
         client = get_supabase_client()
-        quiz_response = (
-            client.table("quizzes")
-            .select("id,title,host_id,question_count,mode,status,created_at,updated_at")
-            .eq("id", quiz_id)
-            .eq("host_id", host_id)
-            .neq("status", "archived")
-            .limit(1)
-            .execute()
-        )
-
-        quiz = (quiz_response.data or [None])[0]
+        quiz = self._fetch_quiz_row(client, quiz_id, host_id)
         if not quiz:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
 
         questions_response = (
-            client.table("quiz_questions")
-            .select("id,quiz_id,question_text,question_type,options,correct_answers,points,time_limit,order_index")
+            client.table("manual_questions")
+            .select(
+                "id,quiz_id,question_index,question_text,option_a,option_b,option_c,option_d,"
+                "correct_answer,time_per_question,points,created_at"
+            )
             .eq("quiz_id", quiz_id)
-            .order("order_index")
+            .order("question_index")
             .execute()
         )
+        questions = [self._map_question(row) for row in questions_response.data or []]
+        logger.info("manual quiz opened quiz_id=%s host_id=%s questions=%s", quiz_id, host_id, len(questions))
 
-        quiz["questions"] = questions_response.data or []
-        return quiz
+        payload = self._map_quiz_summary(quiz)
+        payload["questions"] = questions
+        return payload
 
     def _save_quiz_sync(self, request: ManualQuizSaveRequest, quiz_id: str | None) -> dict[str, Any]:
         client = get_supabase_client()
+        room_code = self._normalize_room_code(request.room_code)
+        quiz_payload = {
+            "title": request.title.strip(),
+            "host_id": request.host_id,
+            "question_type": request.question_type,
+            "total_questions": len(request.questions),
+            "multiplayer": request.multiplayer,
+            "room_code": room_code,
+        }
         logger.info(
-            "manual quiz save requested host_id=%s quiz_id=%s title=%s questions=%s",
+            "manual quiz save requested host_id=%s quiz_id=%s title=%s questions=%s multiplayer=%s room_code=%s",
             request.host_id,
             quiz_id or "new",
             request.title,
             len(request.questions),
+            request.multiplayer,
+            room_code,
         )
-        quiz_payload = {
-            "title": request.title.strip(),
-            "host_id": request.host_id,
-            "question_count": len(request.questions),
-            "mode": request.mode,
-            "status": request.status,
-        }
 
-        if quiz_id:
-            existing = (
-                client.table("quizzes")
-                .select("id")
-                .eq("id", quiz_id)
-                .eq("host_id", request.host_id)
-                .neq("status", "archived")
-                .limit(1)
-                .execute()
-            )
-            if not existing.data:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
-
-            client.table("quizzes").update(quiz_payload).eq("id", quiz_id).eq("host_id", request.host_id).execute()
-            saved_quiz = self._fetch_quiz_row(client, quiz_id, request.host_id)
-            client.table("quiz_questions").delete().eq("quiz_id", quiz_id).execute()
-        else:
-            quiz_response = client.table("quizzes").insert(quiz_payload).execute()
-            saved_quiz = (quiz_response.data or [None])[0]
-            logger.info("manual quiz inserted quiz_id=%s host_id=%s", saved_quiz.get("id") if saved_quiz else None, request.host_id)
-
-        if not saved_quiz:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not save quiz.")
-
-        question_rows = [
-            {
-                "quiz_id": saved_quiz["id"],
-                "question_text": question.question_text,
-                "question_type": question.question_type,
-                "options": question.options,
-                "correct_answers": question.correct_answers,
-                "points": question.points,
-                "time_limit": question.time_limit,
-                "order_index": question.order_index,
-            }
-            for question in request.questions
-        ]
-
-        if question_rows:
-            client.table("quiz_questions").insert(question_rows).execute()
-            logger.info("manual quiz questions inserted quiz_id=%s count=%s", saved_quiz["id"], len(question_rows))
-
+        saved_quiz: dict[str, Any] | None = None
         try:
-            client.table("saved_quizzes").upsert(
-                {
-                    "host_id": request.host_id,
-                    "quiz_id": saved_quiz["id"],
-                    "draft_status": request.status,
-                },
-                on_conflict="host_id,quiz_id",
-            ).execute()
-        except Exception:
-            logger.warning(
-                "saved_quizzes metadata upsert failed quiz_id=%s host_id=%s",
-                saved_quiz["id"],
-                request.host_id,
-                exc_info=True,
-            )
+            if quiz_id:
+                existing = self._fetch_quiz_row(client, quiz_id, request.host_id)
+                if not existing:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
 
-        saved_quiz["questions"] = question_rows
-        return saved_quiz
+                client.table("manual_quizzes").update(quiz_payload).eq("id", quiz_id).eq("host_id", request.host_id).execute()
+                client.table("manual_questions").delete().eq("quiz_id", quiz_id).execute()
+                saved_quiz = self._fetch_quiz_row(client, quiz_id, request.host_id)
+            else:
+                quiz_response = client.table("manual_quizzes").insert(quiz_payload).execute()
+                saved_quiz = (quiz_response.data or [None])[0]
+
+            if not saved_quiz:
+                raise RuntimeError("Supabase did not return the saved quiz row.")
+
+            question_rows = self._build_question_rows(saved_quiz["id"], request)
+            for question_row in question_rows:
+                client.table("manual_questions").insert(question_row).execute()
+            logger.info("manual quiz questions saved quiz_id=%s count=%s", saved_quiz["id"], len(question_rows))
+
+            if request.multiplayer and room_code:
+                self._replace_multiplayer_room(client, saved_quiz["id"], room_code)
+
+            response = self._map_quiz_summary(saved_quiz)
+            response["questions"] = [self._map_question(row) for row in question_rows]
+            return response
+        except Exception:
+            if not quiz_id and saved_quiz and saved_quiz.get("id"):
+                try:
+                    client.table("manual_quizzes").delete().eq("id", saved_quiz["id"]).execute()
+                except Exception:
+                    logger.warning("manual quiz rollback failed quiz_id=%s", saved_quiz["id"], exc_info=True)
+            raise
 
     def _delete_quiz_sync(self, quiz_id: str, host_id: str) -> None:
         client = get_supabase_client()
-        existing = (
-            client.table("quizzes")
-            .select("id")
-            .eq("id", quiz_id)
-            .eq("host_id", host_id)
-            .neq("status", "archived")
-            .limit(1)
-            .execute()
-        )
-        if not existing.data:
+        existing = self._fetch_quiz_row(client, quiz_id, host_id)
+        if not existing:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
 
-        client.table("quizzes").update({"status": "archived"}).eq("id", quiz_id).eq("host_id", host_id).execute()
+        client.table("manual_quizzes").delete().eq("id", quiz_id).eq("host_id", host_id).execute()
+        logger.info("manual quiz deleted quiz_id=%s host_id=%s", quiz_id, host_id)
 
     def _fetch_quiz_row(self, client, quiz_id: str, host_id: str) -> dict[str, Any] | None:
         response = (
-            client.table("quizzes")
-            .select("id,title,host_id,question_count,mode,status,created_at,updated_at")
+            client.table("manual_quizzes")
+            .select("id,title,host_id,question_type,total_questions,multiplayer,room_code,created_at,updated_at")
             .eq("id", quiz_id)
             .eq("host_id", host_id)
-            .neq("status", "archived")
             .limit(1)
             .execute()
         )
         return (response.data or [None])[0]
+
+    def _replace_multiplayer_room(self, client, quiz_id: str, room_code: str) -> None:
+        client.table("multiplayer_rooms").delete().eq("quiz_id", quiz_id).execute()
+        client.table("multiplayer_rooms").insert(
+            {
+                "quiz_id": quiz_id,
+                "room_code": room_code,
+                "host_name": "Host",
+                "started": False,
+            }
+        ).execute()
+        logger.info("manual quiz multiplayer room linked quiz_id=%s room_code=%s", quiz_id, room_code)
+
+    @staticmethod
+    def _build_question_rows(quiz_id: str, request: ManualQuizSaveRequest) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for index, question in enumerate(request.questions):
+            rows.append(
+                {
+                    "quiz_id": quiz_id,
+                    "question_index": index,
+                    "question_text": question.question.strip(),
+                    "option_a": question.options[0],
+                    "option_b": question.options[1],
+                    "option_c": question.options[2],
+                    "option_d": question.options[3],
+                    "correct_answer": question.correct_answer,
+                    "time_per_question": question.time_per_question,
+                    "points": question.points,
+                }
+            )
+        return rows
+
+    @staticmethod
+    def _map_quiz_summary(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "host_id": row.get("host_id") or "",
+            "question_count": row.get("total_questions") or 0,
+            "mode": "manual",
+            "status": "ready",
+            "question_type": row.get("question_type") or "mcq",
+            "multiplayer": bool(row.get("multiplayer")),
+            "room_code": row.get("room_code"),
+            "created_at": row.get("created_at"),
+            "updated_at": row.get("updated_at") or row.get("created_at"),
+            "last_edited": row.get("updated_at") or row.get("created_at"),
+        }
+
+    @staticmethod
+    def _map_question(row: dict[str, Any]) -> dict[str, Any]:
+        options = [row.get("option_a") or "", row.get("option_b") or "", row.get("option_c") or "", row.get("option_d") or ""]
+        return {
+            "question_text": row.get("question_text") or "",
+            "question_type": "mcq",
+            "options": options,
+            "correct_answers": [row.get("correct_answer") or ""],
+            "points": row.get("points") or 1,
+            "time_limit": row.get("time_per_question") or 30,
+            "order_index": row.get("question_index") or 0,
+        }
+
+    @staticmethod
+    def _normalize_room_code(room_code: str | None) -> str | None:
+        normalized = "".join((room_code or "").upper().split())
+        return normalized or None
 
     @staticmethod
     def _safe_error(exc: Exception) -> str:
@@ -218,7 +252,7 @@ class ManualQuizService:
         for marker in ("eyJ", "Bearer "):
             if marker in redacted:
                 redacted = redacted.split(marker)[0].strip() or "Supabase rejected the request."
-        return redacted[:360]
+        return redacted[:500]
 
 
 manual_quiz_service = ManualQuizService()
