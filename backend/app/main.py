@@ -67,7 +67,11 @@ async def health(request: Request):
     if request.method == "HEAD":
         return Response(status_code=200)
 
-    return {"status": "ok", "supabase": get_supabase_diagnostics()}
+    return {
+        "status": "ok",
+        "supabase": get_supabase_diagnostics(),
+        "manual_storage": "supabase_rest_http1",
+    }
 
 
 socket_app = socketio.ASGIApp(
