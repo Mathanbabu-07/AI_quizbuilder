@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { heroContainer, heroItem } from "@/animations/motionPresets";
 import { AboutGQSection } from "@/components/AboutGQSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
@@ -48,7 +49,46 @@ type Screen =
 
 type CreationMode = "ai" | "manual" | null;
 
+const routableScreens: Screen[] = [
+  "home",
+  "questionTypes",
+  "manualMcq",
+  "create",
+  "loading",
+  "review",
+  "game",
+  "results",
+  "waiting",
+  "resultsWaiting"
+];
+
+function modeForScreen(nextScreen: Screen): CreationMode {
+  if (nextScreen === "create" || nextScreen === "loading") {
+    return "ai";
+  }
+
+  if (nextScreen === "questionTypes" || nextScreen === "manualMcq") {
+    return "manual";
+  }
+
+  return null;
+}
+
+function readScreenFromUrl(): Screen {
+  if (typeof window === "undefined") {
+    return "home";
+  }
+
+  const view = new URLSearchParams(window.location.search).get("view");
+  return routableScreens.includes(view as Screen) ? (view as Screen) : "home";
+}
+
+function routeForScreen(nextScreen: Screen) {
+  return nextScreen === "home" ? "/" : `/?view=${nextScreen}`;
+}
+
 export function HeroSection() {
+  const router = useRouter();
   const [screen, setScreen] = useState<Screen>("home");
   const [creationMode, setCreationMode] = useState<CreationMode>(null);
   const [quiz, setQuiz] = useState<GeneratedQuiz | null>(null);
@@ -68,6 +108,58 @@ export function HeroSection() {
   const aboutRef = useRef<HTMLElement | null>(null);
   const isParticipantSession = Boolean(participantRoom.participantId);
 
+  const goToScreen = useCallback(
+    (nextScreen: Screen, options?: { replace?: boolean }) => {
+      setScreen(nextScreen);
+      const nextMode = modeForScreen(nextScreen);
+      if (nextScreen === "home") {
+        setCreationMode(null);
+      } else if (nextMode) {
+        setCreationMode(nextMode);
+      }
+
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const nextRoute = routeForScreen(nextScreen);
+      const currentRoute = `${window.location.pathname}${window.location.search}`;
+      if (currentRoute === nextRoute) {
+        return;
+      }
+
+      if (options?.replace) {
+        router.replace(nextRoute, { scroll: false });
+        return;
+      }
+
+      router.push(nextRoute, { scroll: false });
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    const initialScreen = readScreenFromUrl();
+    setScreen(initialScreen);
+    const initialMode = modeForScreen(initialScreen);
+    setCreationMode(initialScreen === "home" ? null : initialMode);
+
+    if (initialScreen === "home" && window.location.search) {
+      router.replace("/", { scroll: false });
+    }
+
+    const handlePopState = () => {
+      const nextScreen = readScreenFromUrl();
+      setScreen(nextScreen);
+      const nextMode = modeForScreen(nextScreen);
+      setCreationMode(nextScreen === "home" ? null : nextMode);
+      setErrorMessage(null);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [router]);
+
   const openAiFlow = () => {
     participantRoom.leaveRoom();
     setCreationMode("ai");
@@ -78,7 +170,7 @@ export function HeroSection() {
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setErrorMessage(null);
-    setScreen("create");
+    goToScreen("create");
   };
 
   const openManualFlow = () => {
@@ -91,7 +183,7 @@ export function HeroSection() {
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setErrorMessage(null);
-    setScreen("questionTypes");
+    goToScreen("questionTypes");
   };
 
   useEffect(() => {
@@ -99,17 +191,17 @@ export function HeroSection() {
     if (screen === "waiting" && room?.status === "started" && room.quiz && room.settings) {
       setQuiz(room.quiz);
       setSettings(room.settings);
-      setScreen("game");
+      goToScreen("game");
     }
-  }, [participantRoom.roomState, screen]);
+  }, [goToScreen, participantRoom.roomState, screen]);
 
   useEffect(() => {
     const room = participantRoom.roomState;
     const hostState = hostRoom.roomState;
     if (screen === "resultsWaiting" && result && (room?.all_finished || hostState?.all_finished)) {
-      setScreen("results");
+      goToScreen("results");
     }
-  }, [hostRoom.roomState, participantRoom.roomState, result, screen]);
+  }, [goToScreen, hostRoom.roomState, participantRoom.roomState, result, screen]);
 
   useEffect(() => {
     if (!hostId || !["questionTypes", "manualMcq"].includes(screen)) {
@@ -139,14 +231,14 @@ export function HeroSection() {
       setQuiz(generatedQuiz);
       if (multiplayerEnabled) {
         setRoomCode(generateRoomCode());
-        setScreen("review");
+        goToScreen("review");
         return;
       }
 
-      setScreen("game");
+      goToScreen("game");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "The AI engine could not generate this quiz.");
-      setScreen("create");
+      goToScreen("create");
     }
   };
 
@@ -160,19 +252,19 @@ export function HeroSection() {
     setManualDraft(null);
     participantRoom.leaveRoom();
     if (creationMode === "ai") {
-      setScreen("create");
+      goToScreen("create");
       return;
     }
     if (creationMode === "manual") {
-      setScreen("questionTypes");
+      goToScreen("questionTypes");
       return;
     }
-    setScreen("home");
+    goToScreen("home");
   };
 
   const showAbout = () => {
     if (screen !== "home") {
-      setScreen("home");
+      goToScreen("home");
       window.setTimeout(() => aboutRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
       return;
     }
@@ -184,7 +276,7 @@ export function HeroSection() {
     const joined = await participantRoom.joinRoom(roomCode);
     if (joined) {
       setJoinModalOpen(false);
-      setScreen("waiting");
+      goToScreen("waiting");
     }
     return joined;
   };
@@ -197,7 +289,7 @@ export function HeroSection() {
     setManualDraft(null);
     setErrorMessage(null);
     setCreationMode("manual");
-    setScreen("manualMcq");
+    goToScreen("manualMcq");
   };
 
   const openSavedQuiz = async (quizId: string) => {
@@ -224,7 +316,7 @@ export function HeroSection() {
       });
       setErrorMessage(null);
       setCreationMode("manual");
-      setScreen("manualMcq");
+      goToScreen("manualMcq");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Could not open saved quiz.");
     }
@@ -290,7 +382,7 @@ export function HeroSection() {
       setCreationMode("manual");
       setMultiplayerEnabled(true);
       setRoomCode(saved.room_code ?? nextRoomCode);
-      setScreen("review");
+      goToScreen("review");
       setSavedQuizzes((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
       setErrorMessage(null);
     } catch (error) {
@@ -302,7 +394,7 @@ export function HeroSection() {
 
   const leaveWaitingRoom = () => {
     participantRoom.leaveRoom();
-    setScreen("home");
+    goToScreen("home");
   };
 
   const handleMultiplayerToggle = (enabled: boolean) => {
@@ -314,7 +406,7 @@ export function HeroSection() {
     setCreationMode("manual");
     setMultiplayerEnabled(false);
     setRoomCode(null);
-    setScreen("questionTypes");
+    goToScreen("questionTypes");
   };
 
   const handleStartQuiz = async () => {
@@ -329,7 +421,7 @@ export function HeroSection() {
       }
     }
 
-    setScreen("game");
+    goToScreen("game");
   };
 
   const handleGameComplete = async (nextResult: QuizResult) => {
@@ -338,9 +430,9 @@ export function HeroSection() {
     if (isParticipantSession) {
       const syncedRoom = await participantRoom.submitResult(nextResult);
       if (syncedRoom?.all_finished) {
-        setScreen("results");
+        goToScreen("results");
       } else {
-        setScreen("resultsWaiting");
+        goToScreen("resultsWaiting");
       }
       return;
     }
@@ -348,19 +440,19 @@ export function HeroSection() {
     if (multiplayerEnabled) {
       const syncedRoom = await hostRoom.submitResult(nextResult);
       if (syncedRoom?.all_finished) {
-        setScreen("results");
+        goToScreen("results");
       } else {
-        setScreen("resultsWaiting");
+        goToScreen("resultsWaiting");
       }
       return;
     }
 
-    setScreen("results");
+    goToScreen("results");
   };
 
   return (
     <div className="relative z-10 min-h-svh">
-      <NavigationBar onCreateAi={openAiFlow} onManualCreate={openManualFlow} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
+      <NavigationBar isHome={screen === "home"} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
 
       <JoinQuizModal
         open={joinModalOpen}
