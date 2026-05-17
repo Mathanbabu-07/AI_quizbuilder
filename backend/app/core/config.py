@@ -38,9 +38,12 @@ def _csv_env(name: str) -> list[str]:
 
 def _secret_env(name: str) -> str:
     value = os.getenv(name, "").strip()
+    if value.startswith(f"{name}="):
+        value = value.split("=", 1)[1].strip()
     if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
         value = value[1:-1].strip()
-    return value
+    value = value.strip().strip('"').strip("'")
+    return "".join(value.split())
 
 
 def _unique_urls(values: list[str]) -> list[str]:
