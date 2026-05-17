@@ -20,7 +20,6 @@ type OrbitalParticle = {
   opacity: number;
   duration: number;
   delay: number;
-  direction: 1 | -1;
   mobile?: boolean;
 };
 
@@ -72,14 +71,14 @@ const coreTickMarks = Array.from({ length: 48 }, (_, index) => ({
 }));
 
 const orbitalParticles: OrbitalParticle[] = [
-  { radius: 392, angle: 18, size: 3.5, color: "#c7f9ff", opacity: 0.9, duration: 3.8, delay: 0, direction: 1 },
-  { radius: 364, angle: 126, size: 2.8, color: "#8bbcff", opacity: 0.78, duration: 4.4, delay: 1.1, direction: -1 },
-  { radius: 332, angle: 214, size: 3.2, color: "#a78bfa", opacity: 0.8, duration: 4.1, delay: 0.7, direction: 1 },
-  { radius: 286, angle: 297, size: 2.4, color: "#22d3ee", opacity: 0.72, duration: 3.6, delay: 1.2, direction: -1 },
-  { radius: 246, angle: 64, size: 2.6, color: "#60a5fa", opacity: 0.7, duration: 4.8, delay: 0.4, direction: 1 },
-  { radius: 210, angle: 178, size: 2.2, color: "#f0abfc", opacity: 0.66, duration: 3.9, delay: 2.2, direction: -1 },
-  { radius: 404, angle: 248, size: 2.2, color: "#67e8f9", opacity: 0.7, duration: 4.6, delay: 1.1, direction: 1, mobile: false },
-  { radius: 302, angle: 334, size: 2, color: "#c084fc", opacity: 0.64, duration: 4.2, delay: 2.6, direction: -1, mobile: false }
+  { radius: 392, angle: 18, size: 3.5, color: "#c7f9ff", opacity: 0.9, duration: 3.8, delay: 0 },
+  { radius: 364, angle: 126, size: 2.8, color: "#8bbcff", opacity: 0.78, duration: 4.4, delay: 1.1 },
+  { radius: 332, angle: 214, size: 3.2, color: "#a78bfa", opacity: 0.8, duration: 4.1, delay: 0.7 },
+  { radius: 286, angle: 297, size: 2.4, color: "#22d3ee", opacity: 0.72, duration: 3.6, delay: 1.2 },
+  { radius: 246, angle: 64, size: 2.6, color: "#60a5fa", opacity: 0.7, duration: 4.8, delay: 0.4 },
+  { radius: 210, angle: 178, size: 2.2, color: "#f0abfc", opacity: 0.66, duration: 3.9, delay: 2.2 },
+  { radius: 404, angle: 248, size: 2.2, color: "#67e8f9", opacity: 0.7, duration: 4.6, delay: 1.1, mobile: false },
+  { radius: 302, angle: 334, size: 2, color: "#c084fc", opacity: 0.64, duration: 4.2, delay: 2.6, mobile: false }
 ];
 
 const fieldParticles = Array.from({ length: 34 }, (_, index) => {
@@ -141,18 +140,16 @@ function RotatingLayer({
   opacity?: number;
 }) {
   const reduceMotion = useReducedMotion();
+  const endRotation = direction * 360;
 
   return (
     <motion.g
       style={{
-        transformBox: "view-box",
-        transformOrigin: "50% 50%",
-        originX: "50%",
-        originY: "50%",
         opacity,
         willChange: "transform"
       }}
-      animate={reduceMotion ? false : { rotate: direction * 360 }}
+      initial={{ transform: "rotate(0 0 0)" }}
+      animate={reduceMotion ? { transform: "rotate(0 0 0)" } : { transform: `rotate(${endRotation} 0 0)` }}
       transition={{ duration, repeat: Infinity, ease: "linear" }}
     >
       {children}
