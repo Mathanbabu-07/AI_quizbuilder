@@ -72,14 +72,14 @@ const coreTickMarks = Array.from({ length: 48 }, (_, index) => ({
 }));
 
 const orbitalParticles: OrbitalParticle[] = [
-  { radius: 392, angle: 18, size: 3.5, color: "#c7f9ff", opacity: 0.9, duration: 22, delay: 0, direction: 1 },
-  { radius: 364, angle: 126, size: 2.8, color: "#8bbcff", opacity: 0.78, duration: 27, delay: 1.8, direction: -1 },
-  { radius: 332, angle: 214, size: 3.2, color: "#a78bfa", opacity: 0.8, duration: 25, delay: 0.7, direction: 1 },
-  { radius: 286, angle: 297, size: 2.4, color: "#22d3ee", opacity: 0.72, duration: 18, delay: 1.2, direction: -1 },
-  { radius: 246, angle: 64, size: 2.6, color: "#60a5fa", opacity: 0.7, duration: 16, delay: 0.4, direction: 1 },
-  { radius: 210, angle: 178, size: 2.2, color: "#f0abfc", opacity: 0.66, duration: 14, delay: 2.2, direction: -1 },
-  { radius: 404, angle: 248, size: 2.2, color: "#67e8f9", opacity: 0.7, duration: 30, delay: 1.1, direction: 1, mobile: false },
-  { radius: 302, angle: 334, size: 2, color: "#c084fc", opacity: 0.64, duration: 21, delay: 2.6, direction: -1, mobile: false }
+  { radius: 392, angle: 18, size: 3.5, color: "#c7f9ff", opacity: 0.9, duration: 3.8, delay: 0, direction: 1 },
+  { radius: 364, angle: 126, size: 2.8, color: "#8bbcff", opacity: 0.78, duration: 4.4, delay: 1.1, direction: -1 },
+  { radius: 332, angle: 214, size: 3.2, color: "#a78bfa", opacity: 0.8, duration: 4.1, delay: 0.7, direction: 1 },
+  { radius: 286, angle: 297, size: 2.4, color: "#22d3ee", opacity: 0.72, duration: 3.6, delay: 1.2, direction: -1 },
+  { radius: 246, angle: 64, size: 2.6, color: "#60a5fa", opacity: 0.7, duration: 4.8, delay: 0.4, direction: 1 },
+  { radius: 210, angle: 178, size: 2.2, color: "#f0abfc", opacity: 0.66, duration: 3.9, delay: 2.2, direction: -1 },
+  { radius: 404, angle: 248, size: 2.2, color: "#67e8f9", opacity: 0.7, duration: 4.6, delay: 1.1, direction: 1, mobile: false },
+  { radius: 302, angle: 334, size: 2, color: "#c084fc", opacity: 0.64, duration: 4.2, delay: 2.6, direction: -1, mobile: false }
 ];
 
 const fieldParticles = Array.from({ length: 34 }, (_, index) => {
@@ -144,7 +144,14 @@ function RotatingLayer({
 
   return (
     <motion.g
-      style={{ transformBox: "view-box", transformOrigin: "center", opacity, willChange: "transform" }}
+      style={{
+        transformBox: "view-box",
+        transformOrigin: "50% 50%",
+        originX: "50%",
+        originY: "50%",
+        opacity,
+        willChange: "transform"
+      }}
       animate={reduceMotion ? false : { rotate: direction * 360 }}
       transition={{ duration, repeat: Infinity, ease: "linear" }}
     >
@@ -162,7 +169,7 @@ export function LandingOrbitBackground() {
       aria-hidden="true"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_50%_54%,rgba(124,58,237,0.1),transparent_34%)]" />
-      <div className="absolute left-1/2 top-[45%] h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2 sm:top-1/2 sm:h-[760px] sm:w-[760px] md:h-[860px] md:w-[860px] lg:h-[980px] lg:w-[980px] xl:h-[1080px] xl:w-[1080px]">
+      <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 sm:h-[690px] sm:w-[690px] md:h-[760px] md:w-[760px] lg:h-[820px] lg:w-[820px] xl:h-[880px] xl:w-[880px]">
         <div className="h-full w-full transform-gpu opacity-95 mix-blend-screen will-change-transform">
         <svg
           className="h-full w-full overflow-visible"
@@ -287,32 +294,24 @@ export function LandingOrbitBackground() {
             })}
           </RotatingLayer>
 
-          {orbitalParticles.map((particle, index) => (
-            <motion.g
-              key={`orbital-particle-${index}`}
-              className={particle.mobile === false ? "hidden sm:block" : undefined}
-              initial={{ rotate: particle.angle }}
-              animate={reduceMotion ? false : { rotate: particle.angle + particle.direction * 360 }}
-              transition={{
-                duration: particle.duration,
-                delay: particle.delay,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              style={{ transformBox: "view-box", transformOrigin: "center", willChange: "transform" }}
-            >
+          {orbitalParticles.map((particle, index) => {
+            const position = polarToCartesian(particle.radius, particle.angle);
+
+            return (
               <motion.circle
-                cx="0"
-                cy={-particle.radius}
+                key={`orbital-particle-${index}`}
+                className={particle.mobile === false ? "hidden sm:block" : undefined}
+                cx={position.x}
+                cy={position.y}
                 r={particle.size}
                 fill={particle.color}
                 opacity={particle.opacity}
                 filter="url(#orbitGlow)"
                 animate={reduceMotion ? false : { opacity: [particle.opacity * 0.45, particle.opacity, particle.opacity * 0.5] }}
-                transition={{ duration: 2.8 + index * 0.18, repeat: Infinity, ease: "easeInOut" }}
+                transition={{ duration: particle.duration, delay: particle.delay, repeat: Infinity, ease: "easeInOut" }}
               />
-            </motion.g>
-          ))}
+            );
+          })}
 
           {fieldParticles.map((particle, index) => (
             <motion.circle
