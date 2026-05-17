@@ -36,6 +36,13 @@ def _csv_env(name: str) -> list[str]:
     return [value.strip().rstrip("/") for value in raw_value.split(",") if value.strip()]
 
 
+def _secret_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        value = value[1:-1].strip()
+    return value
+
+
 def _unique_urls(values: list[str]) -> list[str]:
     seen: set[str] = set()
     urls: list[str] = []
@@ -55,11 +62,11 @@ def get_settings() -> Settings:
     frontend_urls = _unique_urls([frontend_url, *_csv_env("FRONTEND_URLS")])
 
     return Settings(
-        openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
+        openrouter_api_key=_secret_env("OPENROUTER_API_KEY"),
         openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b:free"),
         frontend_url=frontend_url,
         frontend_urls=frontend_urls,
         generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
-        supabase_url=os.getenv("SUPABASE_URL", ""),
-        supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""),
+        supabase_url=_secret_env("SUPABASE_URL").rstrip("/"),
+        supabase_service_role_key=_secret_env("SUPABASE_SERVICE_ROLE_KEY"),
     )
