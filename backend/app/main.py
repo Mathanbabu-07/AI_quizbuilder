@@ -27,6 +27,7 @@ async def lifespan(app: FastAPI):
     logger.info("GENQUIZ backend ready")
     logger.info("FastAPI routes registered: %s", route_summary)
     logger.info("Socket.IO ASGI endpoint mounted at /socket.io")
+    logger.info("CORS origins=%s regex=%s", settings.frontend_urls, settings.cors_allow_origin_regex)
     logger.info("Supabase diagnostics: %s", get_supabase_diagnostics())
     yield
 
@@ -36,6 +37,7 @@ fastapi_app = FastAPI(title=settings.app_name, lifespan=lifespan)
 fastapi_app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.frontend_urls,
+    allow_origin_regex=settings.cors_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

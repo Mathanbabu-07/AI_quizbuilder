@@ -14,6 +14,11 @@ class Settings(BaseModel):
     openrouter_model: str = "openai/gpt-oss-120b:free"
     frontend_url: str = ""
     frontend_urls: list[str] = []
+    cors_allow_origin_regex: str = (
+        r"^https://[a-z0-9-]+\.vercel\.app$|"
+        r"^http://localhost(:[0-9]+)?$|"
+        r"^http://127\.0\.0\.1(:[0-9]+)?$"
+    )
     generation_timeout_seconds: float = 120.0
     supabase_url: str = ""
     supabase_service_role_key: str = ""
@@ -69,6 +74,10 @@ def get_settings() -> Settings:
         openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b:free"),
         frontend_url=frontend_url,
         frontend_urls=frontend_urls,
+        cors_allow_origin_regex=os.getenv(
+            "CORS_ALLOW_ORIGIN_REGEX",
+            Settings.model_fields["cors_allow_origin_regex"].default,
+        ),
         generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
         supabase_url=_secret_env("SUPABASE_URL").rstrip("/"),
         supabase_service_role_key=_secret_env("SUPABASE_SERVICE_ROLE_KEY"),
