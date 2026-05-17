@@ -65,6 +65,12 @@ const tickMarks = Array.from({ length: 72 }, (_, index) => ({
   opacity: index % 6 === 0 ? 0.58 : 0.3
 }));
 
+const coreTickMarks = Array.from({ length: 48 }, (_, index) => ({
+  angle: index * 7.5,
+  length: index % 4 === 0 ? 13 : 7,
+  opacity: index % 4 === 0 ? 0.62 : 0.36
+}));
+
 const orbitalParticles: OrbitalParticle[] = [
   { radius: 392, angle: 18, size: 3.5, color: "#c7f9ff", opacity: 0.9, duration: 22, delay: 0, direction: 1 },
   { radius: 364, angle: 126, size: 2.8, color: "#8bbcff", opacity: 0.78, duration: 27, delay: 1.8, direction: -1 },
@@ -138,7 +144,7 @@ function RotatingLayer({
 
   return (
     <motion.g
-      style={{ transformBox: "view-box", transformOrigin: "center", opacity }}
+      style={{ transformBox: "view-box", transformOrigin: "center", opacity, willChange: "transform" }}
       animate={reduceMotion ? false : { rotate: direction * 360 }}
       transition={{ duration, repeat: Infinity, ease: "linear" }}
     >
@@ -157,18 +163,7 @@ export function LandingOrbitBackground() {
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_50%_54%,rgba(124,58,237,0.1),transparent_34%)]" />
       <div className="absolute left-1/2 top-[45%] h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2 sm:top-1/2 sm:h-[760px] sm:w-[760px] md:h-[860px] md:w-[860px] lg:h-[980px] lg:w-[980px] xl:h-[1080px] xl:w-[1080px]">
-        <motion.div
-          className="h-full w-full transform-gpu opacity-95 mix-blend-screen will-change-transform"
-          animate={
-            reduceMotion
-              ? false
-              : {
-                  scale: [1, 1.012, 1],
-                  opacity: [0.88, 0.98, 0.9]
-                }
-          }
-          transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}
-        >
+        <div className="h-full w-full transform-gpu opacity-95 mix-blend-screen will-change-transform">
         <svg
           className="h-full w-full overflow-visible"
           viewBox="-460 -460 920 920"
@@ -195,12 +190,12 @@ export function LandingOrbitBackground() {
               <stop offset="52%" stopColor="#7c3aed" />
               <stop offset="100%" stopColor="#38bdf8" />
             </linearGradient>
-            <filter id="orbitGlow" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
+            <filter id="orbitGlow" x="-58%" y="-58%" width="216%" height="216%">
+              <feGaussianBlur stdDeviation="2.2" result="blur" />
               <feColorMatrix
                 in="blur"
                 type="matrix"
-                values="0 0 0 0 0.18 0 0 0 0 0.72 0 0 0 0 1 0 0 0 0.8 0"
+                values="0 0 0 0 0.18 0 0 0 0 0.72 0 0 0 0 1 0 0 0 0.68 0"
                 result="glow"
               />
               <feMerge>
@@ -208,8 +203,8 @@ export function LandingOrbitBackground() {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            <filter id="softCoreGlow" x="-120%" y="-120%" width="340%" height="340%">
-              <feGaussianBlur stdDeviation="12" result="blur" />
+            <filter id="softCoreGlow" x="-92%" y="-92%" width="284%" height="284%">
+              <feGaussianBlur stdDeviation="7" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -237,16 +232,16 @@ export function LandingOrbitBackground() {
           </g>
 
           <motion.g
-            animate={reduceMotion ? false : { opacity: [0.44, 0.72, 0.44], scale: [0.985, 1.015, 0.985] }}
+            animate={reduceMotion ? false : { opacity: [0.46, 0.68, 0.46] }}
             transition={{ duration: 5.8, repeat: Infinity, ease: "easeInOut" }}
-            style={{ transformBox: "view-box", transformOrigin: "center" }}
+            style={{ transformBox: "view-box", transformOrigin: "center", willChange: "opacity" }}
           >
             <circle r="268" fill="none" stroke="#22d3ee" strokeWidth="4" opacity="0.42" filter="url(#orbitGlow)" />
             <circle r="172" fill="none" stroke="#60a5fa" strokeWidth="2" opacity="0.34" filter="url(#orbitGlow)" />
             <circle r="118" fill="url(#coreRadial)" opacity="0.24" filter="url(#softCoreGlow)" />
           </motion.g>
 
-          <RotatingLayer duration={42} direction={1}>
+          <RotatingLayer duration={54} direction={1}>
             <circle r="410" fill="none" stroke="#38bdf8" strokeWidth="1.4" opacity="0.34" />
             <circle r="386" fill="none" stroke="#2563eb" strokeWidth="1.1" opacity="0.28" strokeDasharray="3 18" />
             {outerArcSegments.map((segment) => (
@@ -254,7 +249,7 @@ export function LandingOrbitBackground() {
             ))}
           </RotatingLayer>
 
-          <RotatingLayer duration={31} direction={-1} opacity={0.96}>
+          <RotatingLayer duration={32} direction={-1} opacity={0.96}>
             <circle r="350" fill="none" stroke="#60a5fa" strokeWidth="2" opacity="0.28" strokeDasharray="38 22" />
             <circle r="326" fill="none" stroke="#a78bfa" strokeWidth="1.25" opacity="0.2" />
             {secondaryArcSegments.map((segment) => (
@@ -262,7 +257,7 @@ export function LandingOrbitBackground() {
             ))}
           </RotatingLayer>
 
-          <RotatingLayer duration={24} direction={1} opacity={0.86}>
+          <RotatingLayer duration={21} direction={1} opacity={0.86}>
             <circle r="282" fill="none" stroke="#22d3ee" strokeWidth="1.2" opacity="0.26" strokeDasharray="2 12" />
             <circle r="248" fill="none" stroke="#2563eb" strokeWidth="16" opacity="0.1" strokeDasharray="28 16" />
             {innerDigitalSegments.map((segment) => (
@@ -304,7 +299,7 @@ export function LandingOrbitBackground() {
                 repeat: Infinity,
                 ease: "linear"
               }}
-              style={{ transformBox: "view-box", transformOrigin: "center" }}
+              style={{ transformBox: "view-box", transformOrigin: "center", willChange: "transform" }}
             >
               <motion.circle
                 cx="0"
@@ -329,22 +324,37 @@ export function LandingOrbitBackground() {
               fill={index % 4 === 0 ? "#a78bfa" : "#67e8f9"}
               opacity={particle.opacity}
               filter="url(#orbitGlow)"
-              animate={
-                reduceMotion
-                  ? false
-                  : {
-                      opacity: [particle.opacity * 0.28, particle.opacity, particle.opacity * 0.35],
-                      scale: [0.82, 1.25, 0.82]
-                    }
-              }
+              animate={reduceMotion ? false : { opacity: [particle.opacity * 0.3, particle.opacity, particle.opacity * 0.35] }}
               transition={{ duration: 3.4 + (index % 8) * 0.4, delay: particle.delay, repeat: Infinity, ease: "easeInOut" }}
             />
           ))}
 
+          <RotatingLayer duration={8} direction={1} opacity={0.82}>
+            <circle r="102" fill="none" stroke="#38bdf8" strokeWidth="1.25" opacity="0.52" strokeDasharray="3 9" />
+            <circle r="86" fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.34" />
+            {coreTickMarks.map((tick) => {
+              const inner = polarToCartesian(76, tick.angle);
+              const outer = polarToCartesian(76 + tick.length, tick.angle);
+
+              return (
+                <line
+                  key={`core-tick-${tick.angle}`}
+                  x1={inner.x}
+                  y1={inner.y}
+                  x2={outer.x}
+                  y2={outer.y}
+                  stroke={tick.angle % 30 === 0 ? "#f0abfc" : "#67e8f9"}
+                  strokeWidth={tick.angle % 30 === 0 ? 1.7 : 0.9}
+                  opacity={tick.opacity}
+                />
+              );
+            })}
+          </RotatingLayer>
+
           <motion.g
-            animate={reduceMotion ? false : { scale: [0.96, 1.07, 0.96], opacity: [0.78, 1, 0.78] }}
+            animate={reduceMotion ? false : { opacity: [0.78, 1, 0.78] }}
             transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
-            style={{ transformBox: "view-box", transformOrigin: "center" }}
+            style={{ transformBox: "view-box", transformOrigin: "center", willChange: "opacity" }}
           >
             <circle r="88" fill="url(#coreRadial)" opacity="0.58" filter="url(#softCoreGlow)" />
             <circle r="58" fill="#020617" opacity="0.9" />
@@ -352,7 +362,7 @@ export function LandingOrbitBackground() {
             <circle r="34" fill="url(#coreRadial)" opacity="0.84" filter="url(#softCoreGlow)" />
           </motion.g>
         </svg>
-        </motion.div>
+        </div>
       </div>
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_47%,transparent_0%,transparent_31%,rgba(2,6,23,0.2)_52%,rgba(2,6,23,0.7)_100%)]" />
