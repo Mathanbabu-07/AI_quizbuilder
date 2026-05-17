@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import httpx
 from fastapi import HTTPException, status
 from starlette.concurrency import run_in_threadpool
 
+from app.core.config import get_settings
 from app.models.manual_quiz import ManualQuizSaveRequest
-from app.services.supabase_client import get_supabase_client
 
 logger = logging.getLogger("genquiz.manual_quizzes")
 
@@ -62,36 +63,38 @@ class ManualQuizService:
             ) from exc
 
     def _list_quizzes_sync(self, host_id: str) -> list[dict[str, Any]]:
-        client = get_supabase_client()
-        response = (
-            client.table("manual_quizzes")
-            .select("id,title,host_id,question_type,total_questions,multiplayer,room_code,created_at,updated_at")
-            .eq("host_id", host_id)
-            .order("updated_at", desc=True)
-            .limit(30)
-            .execute()
+        rows = self._supabase_request(
+            "GET",
+            "manual_quizzes",
+            params={
+                "select": "id,title,host_id,question_type,total_questions,multiplayer,room_code,created_at,updated_at",
+                "host_id": f"eq.{host_id}",
+                "order": "updated_at.desc",
+                "limit": "30",
+            },
         )
-        quizzes = [self._map_quiz_summary(row) for row in response.data or []]
+        quizzes = [self._map_quiz_summary(row) for row in rows]
         logger.info("manual quizzes loaded host_id=%s count=%s", host_id, len(quizzes))
         return quizzes
 
     def _get_quiz_sync(self, quiz_id: str, host_id: str) -> dict[str, Any]:
-        client = get_supabase_client()
-        quiz = self._fetch_quiz_row(client, quiz_id, host_id)
+        quiz = self._fetch_quiz_row(quiz_id, host_id)
         if not quiz:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
 
-        questions_response = (
-            client.table("manual_questions")
-            .select(
-                "id,quiz_id,question_index,question_text,option_a,option_b,option_c,option_d,"
-                "correct_answer,time_per_question,points,created_at"
-            )
-            .eq("quiz_id", quiz_id)
-            .order("question_index")
-            .execute()
+        question_rows = self._supabase_request(
+            "GET",
+            "manual_questions",
+            params={
+                "select": (
+                    "id,quiz_id,question_index,question_text,option_a,option_b,option_c,option_d,"
+                    "correct_answer,time_per_question,points,created_at"
+                ),
+                "quiz_id": f"eq.{quiz_id}",
+                "order": "question_index.asc",
+            },
         )
-        questions = [self._map_question(row) for row in questions_response.data or []]
+        questions = [self._map_question(row) for row in question_rows]
         logger.info("manual quiz opened quiz_id=%s host_id=%s questions=%s", quiz_id, host_id, len(questions))
 
         payload = self._map_quiz_summary(quiz)
@@ -99,7 +102,6 @@ class ManualQuizService:
         return payload
 
     def _save_quiz_sync(self, request: ManualQuizSaveRequest, quiz_id: str | None) -> dict[str, Any]:
-        client = get_supabase_client()
         room_code = self._normalize_room_code(request.room_code)
         quiz_payload = {
             "title": request.title.strip(),
@@ -122,27 +124,38 @@ class ManualQuizService:
         saved_quiz: dict[str, Any] | None = None
         try:
             if quiz_id:
-                existing = self._fetch_quiz_row(client, quiz_id, request.host_id)
+                existing = self._fetch_quiz_row(quiz_id, request.host_id)
                 if not existing:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
 
-                client.table("manual_quizzes").update(quiz_payload).eq("id", quiz_id).eq("host_id", request.host_id).execute()
-                client.table("manual_questions").delete().eq("quiz_id", quiz_id).execute()
-                saved_quiz = self._fetch_quiz_row(client, quiz_id, request.host_id)
+                updated_rows = self._supabase_request(
+                    "PATCH",
+                    "manual_quizzes",
+                    params={"id": f"eq.{quiz_id}", "host_id": f"eq.{request.host_id}"},
+                    json_payload=quiz_payload,
+                    prefer_return=True,
+                )
+                saved_quiz = (updated_rows or [None])[0]
+                self._supabase_request("DELETE", "manual_questions", params={"quiz_id": f"eq.{quiz_id}"})
             else:
-                quiz_response = client.table("manual_quizzes").insert(quiz_payload).execute()
-                saved_quiz = (quiz_response.data or [None])[0]
+                inserted_rows = self._supabase_request(
+                    "POST",
+                    "manual_quizzes",
+                    json_payload=quiz_payload,
+                    prefer_return=True,
+                )
+                saved_quiz = (inserted_rows or [None])[0]
 
             if not saved_quiz:
                 raise RuntimeError("Supabase did not return the saved quiz row.")
 
             question_rows = self._build_question_rows(saved_quiz["id"], request)
-            for question_row in question_rows:
-                client.table("manual_questions").insert(question_row).execute()
+            if question_rows:
+                self._supabase_request("POST", "manual_questions", json_payload=question_rows, prefer_return=True)
             logger.info("manual quiz questions saved quiz_id=%s count=%s", saved_quiz["id"], len(question_rows))
 
             if request.multiplayer and room_code:
-                self._replace_multiplayer_room(client, saved_quiz["id"], room_code)
+                self._replace_multiplayer_room(saved_quiz["id"], room_code)
 
             response = self._map_quiz_summary(saved_quiz)
             response["questions"] = [self._map_question(row) for row in question_rows]
@@ -150,42 +163,84 @@ class ManualQuizService:
         except Exception:
             if not quiz_id and saved_quiz and saved_quiz.get("id"):
                 try:
-                    client.table("manual_quizzes").delete().eq("id", saved_quiz["id"]).execute()
+                    self._supabase_request("DELETE", "manual_quizzes", params={"id": f"eq.{saved_quiz['id']}"})
                 except Exception:
                     logger.warning("manual quiz rollback failed quiz_id=%s", saved_quiz["id"], exc_info=True)
             raise
 
     def _delete_quiz_sync(self, quiz_id: str, host_id: str) -> None:
-        client = get_supabase_client()
-        existing = self._fetch_quiz_row(client, quiz_id, host_id)
+        existing = self._fetch_quiz_row(quiz_id, host_id)
         if not existing:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Saved quiz not found.")
 
-        client.table("manual_quizzes").delete().eq("id", quiz_id).eq("host_id", host_id).execute()
+        self._supabase_request("DELETE", "manual_quizzes", params={"id": f"eq.{quiz_id}", "host_id": f"eq.{host_id}"})
         logger.info("manual quiz deleted quiz_id=%s host_id=%s", quiz_id, host_id)
 
-    def _fetch_quiz_row(self, client, quiz_id: str, host_id: str) -> dict[str, Any] | None:
-        response = (
-            client.table("manual_quizzes")
-            .select("id,title,host_id,question_type,total_questions,multiplayer,room_code,created_at,updated_at")
-            .eq("id", quiz_id)
-            .eq("host_id", host_id)
-            .limit(1)
-            .execute()
+    def _fetch_quiz_row(self, quiz_id: str, host_id: str) -> dict[str, Any] | None:
+        rows = self._supabase_request(
+            "GET",
+            "manual_quizzes",
+            params={
+                "select": "id,title,host_id,question_type,total_questions,multiplayer,room_code,created_at,updated_at",
+                "id": f"eq.{quiz_id}",
+                "host_id": f"eq.{host_id}",
+                "limit": "1",
+            },
         )
-        return (response.data or [None])[0]
+        return (rows or [None])[0]
 
-    def _replace_multiplayer_room(self, client, quiz_id: str, room_code: str) -> None:
-        client.table("multiplayer_rooms").delete().eq("quiz_id", quiz_id).execute()
-        client.table("multiplayer_rooms").insert(
-            {
+    def _replace_multiplayer_room(self, quiz_id: str, room_code: str) -> None:
+        self._supabase_request("DELETE", "multiplayer_rooms", params={"quiz_id": f"eq.{quiz_id}"})
+        self._supabase_request(
+            "POST",
+            "multiplayer_rooms",
+            json_payload={
                 "quiz_id": quiz_id,
                 "room_code": room_code,
                 "host_name": "Host",
                 "started": False,
-            }
-        ).execute()
+            },
+            prefer_return=True,
+        )
         logger.info("manual quiz multiplayer room linked quiz_id=%s room_code=%s", quiz_id, room_code)
+
+    def _supabase_request(
+        self,
+        method: str,
+        table: str,
+        *,
+        params: dict[str, str] | None = None,
+        json_payload: Any | None = None,
+        prefer_return: bool = False,
+    ) -> list[dict[str, Any]]:
+        settings = get_settings()
+        if not settings.supabase_url:
+            raise RuntimeError("SUPABASE_URL is missing.")
+        if not settings.supabase_service_role_key:
+            raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is missing.")
+
+        headers = {
+            "apikey": settings.supabase_service_role_key,
+            "Authorization": f"Bearer {settings.supabase_service_role_key}",
+            "Content-Type": "application/json",
+        }
+        if prefer_return:
+            headers["Prefer"] = "return=representation"
+
+        url = f"{settings.supabase_url.rstrip('/')}/rest/v1/{table}"
+        with httpx.Client(timeout=httpx.Timeout(20.0, connect=8.0), http2=False) as client:
+            response = client.request(method, url, params=params, json=json_payload, headers=headers)
+
+        if response.status_code >= 400:
+            raise RuntimeError(f"Supabase {table} {method} failed ({response.status_code}): {response.text[:700]}")
+        if not response.content:
+            return []
+        data = response.json()
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+        return []
 
     @staticmethod
     def _build_question_rows(quiz_id: str, request: ManualQuizSaveRequest) -> list[dict[str, Any]]:
@@ -252,7 +307,7 @@ class ManualQuizService:
         for marker in ("eyJ", "Bearer "):
             if marker in redacted:
                 redacted = redacted.split(marker)[0].strip() or "Supabase rejected the request."
-        return redacted[:500]
+        return redacted[:700]
 
 
 manual_quiz_service = ManualQuizService()
