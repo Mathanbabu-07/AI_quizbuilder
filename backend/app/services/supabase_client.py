@@ -23,27 +23,44 @@ def get_supabase_client() -> Client:
 
 def get_supabase_diagnostics() -> dict[str, str | bool]:
     settings = get_settings()
-    key_role = _decode_jwt_role(settings.supabase_service_role_key)
+    key_payload = _decode_jwt_payload(settings.supabase_service_role_key)
+    key_role = _payload_value(key_payload, "role")
+    key_ref = _payload_value(key_payload, "ref")
     parsed_url = urlparse(settings.supabase_url) if settings.supabase_url else None
+    url_host = parsed_url.netloc if parsed_url else ""
+    url_ref = url_host.split(".")[0] if url_host else ""
+    key_matches_url = bool(key_ref and url_ref and key_ref == url_ref)
 
     return {
         "url_configured": bool(settings.supabase_url),
         "key_configured": bool(settings.supabase_service_role_key),
-        "url_host": parsed_url.netloc if parsed_url else "",
+        "url_host": url_host,
+        "url_ref": url_ref,
         "key_role": key_role,
-        "ready": bool(settings.supabase_url and settings.supabase_service_role_key and key_role == "service_role"),
+        "key_ref": key_ref,
+        "key_matches_url": key_matches_url,
+        "ready": bool(
+            settings.supabase_url
+            and settings.supabase_service_role_key
+            and key_role == "service_role"
+            and key_matches_url
+        ),
     }
 
 
-def _decode_jwt_role(token: str) -> str:
+def _decode_jwt_payload(token: str) -> dict[str, object]:
     if not token or token.count(".") < 2:
-        return "missing"
+        return {}
 
     try:
         payload_part = token.split(".")[1]
         padded = payload_part + "=" * (-len(payload_part) % 4)
-        payload = json.loads(base64.urlsafe_b64decode(padded.encode("utf-8")).decode("utf-8"))
-        role = payload.get("role")
-        return role if isinstance(role, str) else "unknown"
+        decoded = json.loads(base64.urlsafe_b64decode(padded.encode("utf-8")).decode("utf-8"))
+        return decoded if isinstance(decoded, dict) else {}
     except Exception:
-        return "unreadable"
+        return {}
+
+
+def _payload_value(payload: dict[str, object], key: str) -> str:
+    value = payload.get(key)
+    return value if isinstance(value, str) else "unknown"
