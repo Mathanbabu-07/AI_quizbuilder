@@ -46,8 +46,11 @@ type Screen =
   | "waiting"
   | "resultsWaiting";
 
+type CreationMode = "ai" | "manual" | null;
+
 export function HeroSection() {
   const [screen, setScreen] = useState<Screen>("home");
+  const [creationMode, setCreationMode] = useState<CreationMode>(null);
   const [quiz, setQuiz] = useState<GeneratedQuiz | null>(null);
   const [settings, setSettings] = useState<QuizSettings | null>(null);
   const [result, setResult] = useState<QuizResult | null>(null);
@@ -64,6 +67,32 @@ export function HeroSection() {
   const participantRoom = useParticipantRoom();
   const aboutRef = useRef<HTMLElement | null>(null);
   const isParticipantSession = Boolean(participantRoom.participantId);
+
+  const openAiFlow = () => {
+    participantRoom.leaveRoom();
+    setCreationMode("ai");
+    setQuiz(null);
+    setSettings(null);
+    setResult(null);
+    setManualDraft(null);
+    setRoomCode(null);
+    setMultiplayerEnabled(false);
+    setErrorMessage(null);
+    setScreen("create");
+  };
+
+  const openManualFlow = () => {
+    participantRoom.leaveRoom();
+    setCreationMode("manual");
+    setQuiz(null);
+    setSettings(null);
+    setResult(null);
+    setManualDraft(null);
+    setRoomCode(null);
+    setMultiplayerEnabled(false);
+    setErrorMessage(null);
+    setScreen("questionTypes");
+  };
 
   useEffect(() => {
     const room = participantRoom.roomState;
@@ -102,6 +131,7 @@ export function HeroSection() {
 
     setErrorMessage(null);
     setSettings(nextSettings);
+    setCreationMode("ai");
     setScreen("loading");
 
     try {
@@ -129,7 +159,15 @@ export function HeroSection() {
     setRoomCode(null);
     setManualDraft(null);
     participantRoom.leaveRoom();
-    setScreen("questionTypes");
+    if (creationMode === "ai") {
+      setScreen("create");
+      return;
+    }
+    if (creationMode === "manual") {
+      setScreen("questionTypes");
+      return;
+    }
+    setScreen("home");
   };
 
   const showAbout = () => {
@@ -158,6 +196,7 @@ export function HeroSection() {
 
     setManualDraft(null);
     setErrorMessage(null);
+    setCreationMode("manual");
     setScreen("manualMcq");
   };
 
@@ -184,6 +223,7 @@ export function HeroSection() {
         }))
       });
       setErrorMessage(null);
+      setCreationMode("manual");
       setScreen("manualMcq");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Could not open saved quiz.");
@@ -247,6 +287,7 @@ export function HeroSection() {
       setManualDraft(nextDraft);
       setQuiz(manualQuizToGeneratedQuiz(nextDraft));
       setSettings(manualQuizToSettings(nextDraft));
+      setCreationMode("manual");
       setMultiplayerEnabled(true);
       setRoomCode(saved.room_code ?? nextRoomCode);
       setScreen("review");
@@ -270,6 +311,7 @@ export function HeroSection() {
   };
 
   const handleSaveStartLater = () => {
+    setCreationMode("manual");
     setMultiplayerEnabled(false);
     setRoomCode(null);
     setScreen("questionTypes");
@@ -318,7 +360,7 @@ export function HeroSection() {
 
   return (
     <div className="relative z-10 min-h-svh">
-      <NavigationBar onCreateQuiz={() => setScreen("questionTypes")} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
+      <NavigationBar onCreateAi={openAiFlow} onManualCreate={openManualFlow} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
 
       <JoinQuizModal
         open={joinModalOpen}
@@ -354,8 +396,9 @@ export function HeroSection() {
                   Your AI Playground
                 </motion.p>
 
-                <motion.div className="mt-8 sm:mt-12" variants={heroItem}>
-                  <CreateButton onClick={() => setScreen("questionTypes")} />
+                <motion.div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:flex-row sm:gap-4" variants={heroItem}>
+                  <CreateButton mode="ai" onClick={openAiFlow} />
+                  <CreateButton mode="manual" onClick={openManualFlow} />
                 </motion.div>
               </motion.div>
             </section>
