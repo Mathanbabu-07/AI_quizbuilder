@@ -11,6 +11,7 @@ import { FloatingTitle } from "@/components/FloatingTitle";
 import { JoinQuizModal } from "@/components/JoinQuizModal";
 import { ManualQuizBuilder } from "@/components/ManualQuizBuilder";
 import { NavigationBar } from "@/components/NavigationBar";
+import { MoreGamesHub } from "@/components/MoreGamesHub";
 import { QuestionTypeSelection } from "@/components/QuestionTypeSelection";
 import { QuizGameScreen } from "@/components/QuizGameScreen";
 import { QuizLoadingScreen } from "@/components/QuizLoadingScreen";
@@ -34,11 +35,13 @@ import {
 } from "@/types/manualQuiz";
 import type { GeneratedQuiz, QuizResult, QuizSettings } from "@/types/quiz";
 import { CreateButton } from "@/ui/CreateButton";
+import { MoreGamesButton } from "@/ui/MoreGamesButton";
 
 type Screen =
   | "home"
   | "questionTypes"
   | "manualMcq"
+  | "moreGames"
   | "create"
   | "loading"
   | "review"
@@ -53,6 +56,7 @@ const routableScreens: Screen[] = [
   "home",
   "questionTypes",
   "manualMcq",
+  "moreGames",
   "create",
   "loading",
   "review",
@@ -184,6 +188,18 @@ export function HeroSection() {
     setMultiplayerEnabled(false);
     setErrorMessage(null);
     goToScreen("questionTypes");
+  };
+
+  const openMoreGames = () => {
+    participantRoom.leaveRoom();
+    setQuiz(null);
+    setSettings(null);
+    setResult(null);
+    setManualDraft(null);
+    setRoomCode(null);
+    setMultiplayerEnabled(false);
+    setErrorMessage(null);
+    goToScreen("moreGames");
   };
 
   useEffect(() => {
@@ -488,14 +504,17 @@ export function HeroSection() {
                   Your AI Playground
                 </motion.p>
 
-                <motion.div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:flex-row sm:gap-4" variants={heroItem}>
+                <motion.div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:gap-4" variants={heroItem}>
                   <CreateButton mode="ai" onClick={openAiFlow} />
                   <CreateButton mode="manual" onClick={openManualFlow} />
+                  <MoreGamesButton onClick={openMoreGames} />
                 </motion.div>
               </motion.div>
             </section>
             <AboutGQSection sectionRef={aboutRef} />
           </motion.div>
+        ) : screen === "moreGames" ? (
+          <MoreGamesHub key="moreGames" onBack={() => goToScreen("home")} />
         ) : screen === "questionTypes" ? (
           <QuestionTypeSelection
             key="questionTypes"
