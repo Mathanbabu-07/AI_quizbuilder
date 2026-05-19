@@ -9,7 +9,7 @@ import { NeonTimer } from "@/app/games/hand-cricket/components/NeonTimer";
 import { NumberPad } from "@/app/games/hand-cricket/components/NumberPad";
 import { ResultCard } from "@/app/games/hand-cricket/components/ResultCard";
 import { ScoreBoard } from "@/app/games/hand-cricket/components/ScoreBoard";
-import type { PlayerSide } from "@/app/games/hand-cricket/store/handCricketStore";
+import type { InningsBreak, PlayerSide } from "@/app/games/hand-cricket/store/handCricketStore";
 import { useHandCricketStore } from "@/app/games/hand-cricket/store/handCricketStore";
 
 function SideCard({
@@ -73,6 +73,53 @@ function ChooseSide({ onSelect }: { onSelect: (side: PlayerSide) => void }) {
   );
 }
 
+function InningsBreakOverlay({ inningsBreak }: { inningsBreak: InningsBreak }) {
+  return (
+    <motion.div
+      className="absolute inset-0 z-20 grid place-items-center bg-slate-950/52 px-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.28 }}
+    >
+      <motion.div
+        className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-cyan-100/24 bg-slate-950/78 p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48)] sm:p-8"
+        initial={{ opacity: 0, y: 22, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="absolute left-1/2 top-0 -z-10 size-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/18" />
+        <p className="font-display text-xs font-extrabold uppercase tracking-[0.28em] text-cyan-100/76">
+          Innings Break
+        </p>
+        <h2 className="mt-4 font-display text-4xl font-extrabold uppercase text-white sm:text-5xl">
+          {inningsBreak.title}
+        </h2>
+        <div className="mx-auto mt-6 grid max-w-sm grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white/12 bg-white/[0.06] p-4">
+            <p className="font-display text-[0.64rem] font-extrabold uppercase tracking-[0.18em] text-white/42">
+              Total
+            </p>
+            <p className="mt-2 font-display text-4xl font-extrabold text-white">{inningsBreak.score}</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-100/18 bg-emerald-100/8 p-4">
+            <p className="font-display text-[0.64rem] font-extrabold uppercase tracking-[0.18em] text-emerald-100/58">
+              Target
+            </p>
+            <p className="mt-2 font-display text-4xl font-extrabold text-white">{inningsBreak.target}</p>
+          </div>
+        </div>
+        <p className="mx-auto mt-6 max-w-md text-sm font-semibold leading-relaxed text-white/64 sm:text-base">
+          {inningsBreak.message}
+        </p>
+        <p className="mt-5 rounded-full border border-white/12 bg-white/[0.055] px-4 py-2 font-display text-xs font-extrabold uppercase tracking-[0.18em] text-white/52">
+          Next innings starts now
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export const GameHUD = memo(function GameHUD() {
   const status = useHandCricketStore((state) => state.status);
   const chooseSide = useHandCricketStore((state) => state.chooseSide);
@@ -86,10 +133,12 @@ export const GameHUD = memo(function GameHUD() {
   const batting = useHandCricketStore((state) => state.batting);
   const timer = useHandCricketStore((state) => state.timer);
   const currentMove = useHandCricketStore((state) => state.currentMove);
+  const pendingPlayerPick = useHandCricketStore((state) => state.pendingPlayerPick);
+  const inningsBreak = useHandCricketStore((state) => state.inningsBreak);
   const message = useHandCricketStore((state) => state.message);
   const isRevealing = useHandCricketStore((state) => state.isRevealing);
   const result = useHandCricketStore((state) => state.result);
-  const disabled = status !== "playing" || isRevealing;
+  const disabled = status !== "playing" || isRevealing || pendingPlayerPick !== null;
 
   const handlePick = useCallback((value: number) => playMove(value), [playMove]);
 
@@ -109,6 +158,8 @@ export const GameHUD = memo(function GameHUD() {
         </div>
       </header>
 
+      {status === "innings-break" && inningsBreak ? <InningsBreakOverlay inningsBreak={inningsBreak} /> : null}
+
       {status === "choose-side" ? (
         <ChooseSide onSelect={chooseSide} />
       ) : status === "result" && result ? (
@@ -126,7 +177,7 @@ export const GameHUD = memo(function GameHUD() {
           <main className="grid flex-1 content-center gap-7">
             <HandReveal move={currentMove} message={message} />
             <NeonTimer timer={timer} isRevealing={isRevealing} />
-            <NumberPad disabled={disabled} onPick={handlePick} />
+            <NumberPad disabled={disabled} selectedNumber={pendingPlayerPick} onPick={handlePick} />
           </main>
         </div>
       )}

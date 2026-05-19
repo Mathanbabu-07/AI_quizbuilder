@@ -4,7 +4,7 @@ import { create } from "zustand";
 
 export type PlayerSide = "bat" | "bowl";
 export type Batter = "player" | "ai";
-export type GameStatus = "choose-side" | "playing" | "result";
+export type GameStatus = "choose-side" | "playing" | "innings-break" | "result";
 export type MatchResult = "win" | "lose" | "draw";
 export type MoveOutcome = "runs" | "out";
 
@@ -20,6 +20,14 @@ export type HandCricketMove = {
   intensity: "normal" | "four" | "six" | "out";
 };
 
+export type InningsBreak = {
+  score: number;
+  target: number;
+  nextBatting: Batter;
+  title: string;
+  message: string;
+};
+
 type HandCricketState = {
   status: GameStatus;
   selectedSide: PlayerSide | null;
@@ -30,15 +38,19 @@ type HandCricketState = {
   ballsRemaining: number;
   target: number | null;
   timer: number;
+  pendingPlayerPick: number | null;
   currentMove: HandCricketMove | null;
+  inningsBreak: InningsBreak | null;
   result: MatchResult | null;
   isRevealing: boolean;
   message: string;
   moveIndex: number;
   chooseSide: (side: PlayerSide) => void;
   playMove: (playerPick: number) => void;
+  revealMove: () => void;
   tick: () => void;
   advanceAfterReveal: () => void;
+  startNextInnings: () => void;
   resetMatch: () => void;
 };
 
@@ -55,7 +67,9 @@ const initialState = {
   ballsRemaining: MAX_BALLS,
   target: null,
   timer: MOVE_SECONDS,
+  pendingPlayerPick: null,
   currentMove: null,
+  inningsBreak: null,
   result: null,
   isRevealing: false,
   message: "Choose BAT or BOWL to enter the arena.",
@@ -112,17 +126,30 @@ export const useHandCricketStore = create<HandCricketState>((set, get) => ({
       status: "playing",
       selectedSide: side,
       batting,
-      message: batting === "player" ? "You are batting first." : "AI is batting first. Match the number to bowl it out."
+      message: batting === "player" ? "Pick your batting number." : "Pick your bowling number."
     });
   },
 
   playMove: (playerPick) => {
     const state = get();
-    if (state.status !== "playing" || state.isRevealing) {
+    if (state.status !== "playing" || state.isRevealing || state.pendingPlayerPick !== null) {
       return;
     }
 
     const nextPlayerPick = normalizePick(playerPick);
+    set({
+      pendingPlayerPick: nextPlayerPick,
+      message: `Number ${nextPlayerPick} locked. Reveal in ${state.timer}.`
+    });
+  },
+
+  revealMove: () => {
+    const state = get();
+    if (state.status !== "playing" || state.isRevealing) {
+      return;
+    }
+
+    const nextPlayerPick = state.pendingPlayerPick ?? randomPick();
     const aiPick = randomPick();
     const outcome: MoveOutcome = nextPlayerPick === aiPick ? "out" : "runs";
     const runs = outcome === "out" ? 0 : state.batting === "player" ? nextPlayerPick : aiPick;
@@ -140,6 +167,7 @@ export const useHandCricketStore = create<HandCricketState>((set, get) => ({
       aiScore,
       ballsRemaining,
       timer: 0,
+      pendingPlayerPick: null,
       isRevealing: true,
       moveIndex,
       message,
@@ -164,11 +192,20 @@ export const useHandCricketStore = create<HandCricketState>((set, get) => ({
     }
 
     if (state.timer <= 1) {
-      state.playMove(randomPick());
+      state.revealMove();
       return;
     }
 
-    set({ timer: state.timer - 1 });
+    const nextTimer = state.timer - 1;
+    set({
+      timer: nextTimer,
+      message:
+        state.pendingPlayerPick === null
+          ? state.batting === "player"
+            ? "Pick your batting number."
+            : "Pick your bowling number."
+          : `Number ${state.pendingPlayerPick} locked. Reveal in ${nextTimer}.`
+    });
   },
 
   advanceAfterReveal: () => {
@@ -186,16 +223,19 @@ export const useHandCricketStore = create<HandCricketState>((set, get) => ({
       const firstInningsScore = state.batting === "player" ? state.playerScore : state.aiScore;
       const nextBatting: Batter = state.batting === "player" ? "ai" : "player";
       set({
-        innings: 2,
-        batting: nextBatting,
-        ballsRemaining: MAX_BALLS,
-        target: firstInningsScore + 1,
-        timer: MOVE_SECONDS,
+        status: "innings-break",
+        inningsBreak: {
+          score: firstInningsScore,
+          target: firstInningsScore + 1,
+          nextBatting,
+          title: state.batting === "player" ? "INNINGS COMPLETE" : "CHASE READY",
+          message:
+            nextBatting === "player"
+              ? `AI scored ${firstInningsScore}. Chase ${firstInningsScore + 1} runs to win.`
+              : `You scored ${firstInningsScore}. Defend ${firstInningsScore + 1} runs now.`
+        },
         isRevealing: false,
-        message:
-          nextBatting === "player"
-            ? `Chase ${firstInningsScore + 1} to win.`
-            : `Defend ${firstInningsScore + 1}. Match the AI to bowl it out.`
+        message: "Next innings starting."
       });
       return;
     }
@@ -213,8 +253,30 @@ export const useHandCricketStore = create<HandCricketState>((set, get) => ({
 
     set({
       timer: MOVE_SECONDS,
+      currentMove: null,
       isRevealing: false,
       message: state.batting === "player" ? "Pick your batting number." : "Pick your bowling number."
+    });
+  },
+
+  startNextInnings: () => {
+    const state = get();
+    if (state.status !== "innings-break" || !state.inningsBreak) {
+      return;
+    }
+
+    set({
+      status: "playing",
+      innings: 2,
+      batting: state.inningsBreak.nextBatting,
+      ballsRemaining: MAX_BALLS,
+      target: state.inningsBreak.target,
+      timer: MOVE_SECONDS,
+      pendingPlayerPick: null,
+      currentMove: null,
+      inningsBreak: null,
+      isRevealing: false,
+      message: state.inningsBreak.nextBatting === "player" ? "Pick your batting number." : "Pick your bowling number."
     });
   },
 

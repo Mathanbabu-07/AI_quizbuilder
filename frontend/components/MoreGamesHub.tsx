@@ -60,7 +60,7 @@ const toneStyles: Record<GameMode["tone"], ToneStyle> = {
 
 function HandCricketVisual({ motionEnabled }: { motionEnabled: boolean }) {
   return (
-    <div className="relative h-36 overflow-hidden rounded-3xl border border-emerald-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.18),transparent_48%)]">
+    <div className="relative h-32 overflow-hidden rounded-lg border border-emerald-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.18),transparent_48%)] sm:h-36">
       <div className="absolute inset-x-8 bottom-5 h-12 rounded-[50%] border-t border-emerald-100/22" />
       <div className="absolute inset-x-12 bottom-8 h-9 rounded-[50%] border-t border-cyan-100/18" />
       <motion.span
@@ -95,7 +95,7 @@ function EmojiCrushVisual({ motionEnabled }: { motionEnabled: boolean }) {
   ];
 
   return (
-    <div className="relative h-36 overflow-hidden rounded-3xl border border-fuchsia-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(217,70,239,0.17),transparent_48%)]">
+    <div className="relative h-32 overflow-hidden rounded-lg border border-fuchsia-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(217,70,239,0.17),transparent_48%)] sm:h-36">
       {icons.map(({ Icon, className, delay }) => (
         <motion.span
           key={className}
@@ -121,7 +121,7 @@ function EmojiCrushVisual({ motionEnabled }: { motionEnabled: boolean }) {
 
 function MemoryGridVisual({ motionEnabled }: { motionEnabled: boolean }) {
   return (
-    <div className="relative h-36 overflow-hidden rounded-3xl border border-cyan-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,0.16),transparent_48%)]">
+    <div className="relative h-32 overflow-hidden rounded-lg border border-cyan-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,0.16),transparent_48%)] sm:h-36">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(103,232,249,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(167,139,250,0.08)_1px,transparent_1px)] bg-[size:34px_34px] opacity-60" />
       <div className="absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 grid-cols-3 gap-2">
         {Array.from({ length: 9 }).map((_, index) => (
@@ -171,7 +171,7 @@ function GameCard({ game, index }: { game: GameMode; index: number }) {
       <motion.button
         type="button"
         onClick={() => router.push(game.path)}
-        className={`group relative isolate flex min-h-[29rem] w-full flex-col overflow-hidden rounded-[1.75rem] border p-4 text-left shadow-[0_22px_70px_rgba(0,0,0,0.34)] outline-none backdrop-blur-2xl transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:p-5 ${style.shell}`}
+        className={`group relative isolate flex aspect-square w-full flex-col overflow-hidden rounded-lg border p-4 text-left shadow-[0_22px_70px_rgba(0,0,0,0.34)] outline-none backdrop-blur-2xl transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:p-5 ${style.shell}`}
         whileHover={motionEnabled ? { y: -8, scale: 1.018 } : undefined}
         whileTap={{ scale: 0.982 }}
         transition={{ type: "spring", stiffness: 360, damping: 28 }}
@@ -183,7 +183,7 @@ function GameCard({ game, index }: { game: GameMode; index: number }) {
 
         <GameVisual tone={game.tone} motionEnabled={motionEnabled} />
 
-        <div className="mt-6 flex items-center justify-between gap-3">
+        <div className="mt-4 flex items-center justify-between gap-3 sm:mt-5">
           <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.66rem] font-bold uppercase tracking-[0.16em] ${style.chip}`}>
             <AccentIcon className="size-3.5" strokeWidth={2.1} />
             {game.eyebrow}
@@ -191,18 +191,18 @@ function GameCard({ game, index }: { game: GameMode; index: number }) {
           <CircleDot className="size-5 text-white/30 transition-colors duration-300 group-hover:text-white/62" strokeWidth={1.8} />
         </div>
 
-        <h2 className="mt-5 font-display text-3xl font-extrabold tracking-wide text-white sm:text-4xl">
+        <h2 className="mt-4 font-display text-2xl font-extrabold tracking-wide text-white sm:text-3xl lg:text-[2rem]">
           {game.title}
         </h2>
-        <p className="mt-3 min-h-12 text-sm font-semibold leading-relaxed text-white/52">
+        <p className="mt-2 text-xs font-semibold leading-relaxed text-white/52 sm:text-sm">
           {game.description}
         </p>
 
-        <span className="mt-auto flex items-center justify-between pt-8">
+        <span className="mt-auto flex items-center justify-between pt-4">
           <span className="font-display text-xs font-extrabold uppercase tracking-[0.2em] text-white/62">
             Enter Arena
           </span>
-          <span className={`grid size-11 place-items-center rounded-full border ${style.icon} transition-transform duration-300 group-hover:translate-x-1`}>
+          <span className={`grid size-11 place-items-center rounded-lg border ${style.icon} transition-transform duration-300 group-hover:translate-x-1`}>
             <Gamepad2 className="size-5" strokeWidth={2.1} />
           </span>
         </span>

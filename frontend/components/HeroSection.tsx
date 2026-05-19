@@ -35,7 +35,6 @@ import {
 } from "@/types/manualQuiz";
 import type { GeneratedQuiz, QuizResult, QuizSettings } from "@/types/quiz";
 import { CreateButton } from "@/ui/CreateButton";
-import { MoreGamesButton } from "@/ui/MoreGamesButton";
 
 type Screen =
   | "home"
@@ -512,7 +511,6 @@ export function HeroSection() {
                 <motion.div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:flex-row sm:flex-wrap sm:gap-4" variants={heroItem}>
                   <CreateButton mode="ai" onClick={openAiFlow} />
                   <CreateButton mode="manual" onClick={openManualFlow} />
-                  <MoreGamesButton onClick={openMoreGames} />
                 </motion.div>
               </motion.div>
             </section>
