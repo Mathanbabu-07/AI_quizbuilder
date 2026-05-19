@@ -5,6 +5,7 @@
 create extension if not exists pgcrypto;
 
 drop table if exists public.participants cascade;
+drop table if exists public.hand_cricket_matches cascade;
 drop table if exists public.multiplayer_rooms cascade;
 drop table if exists public.manual_questions cascade;
 drop table if exists public.manual_quizzes cascade;
@@ -65,11 +66,24 @@ create table public.participants (
   joined_at timestamp with time zone not null default now()
 );
 
+create table public.hand_cricket_matches (
+  id uuid primary key default gen_random_uuid(),
+  player_name text not null default 'Player',
+  player_score integer not null default 0,
+  ai_score integer not null default 0,
+  winner text not null,
+  created_at timestamp with time zone not null default now(),
+  constraint hand_cricket_matches_player_score_check check (player_score >= 0 and player_score <= 36),
+  constraint hand_cricket_matches_ai_score_check check (ai_score >= 0 and ai_score <= 36),
+  constraint hand_cricket_matches_winner_check check (winner in ('player', 'ai', 'draw'))
+);
+
 create index manual_quizzes_host_updated_idx on public.manual_quizzes(host_id, updated_at desc);
 create index manual_quizzes_room_code_idx on public.manual_quizzes(room_code);
 create index manual_questions_quiz_order_idx on public.manual_questions(quiz_id, question_index);
 create index multiplayer_rooms_room_code_idx on public.multiplayer_rooms(room_code);
 create index participants_room_joined_idx on public.participants(room_code, joined_at);
+create index hand_cricket_matches_created_idx on public.hand_cricket_matches(created_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger as $$
@@ -90,3 +104,4 @@ alter table public.manual_quizzes disable row level security;
 alter table public.manual_questions disable row level security;
 alter table public.multiplayer_rooms disable row level security;
 alter table public.participants disable row level security;
+alter table public.hand_cricket_matches disable row level security;
