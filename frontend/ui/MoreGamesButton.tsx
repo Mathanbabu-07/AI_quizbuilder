@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Gamepad2, Sparkles } from "lucide-react";
+import { Dices, Joystick } from "lucide-react";
 
 type MoreGamesButtonProps = {
   onClick: () => void;
@@ -22,9 +22,9 @@ export function MoreGamesButton({ onClick }: MoreGamesButtonProps) {
       <span className="absolute inset-[1px] -z-10 rounded-[11px] bg-slate-950/44 backdrop-blur-md transition-colors duration-300 group-hover:bg-slate-950/26" />
       <span className="absolute -inset-x-8 bottom-0 h-px bg-emerald-100/90 blur-[1px]" />
       <span className="absolute left-1/2 top-1/2 -z-10 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-200/25 blur-2xl transition-transform duration-500 group-hover:scale-150" />
-      <Gamepad2 className="mr-3 size-4 text-cyan-100 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" strokeWidth={2.4} />
+      <Joystick className="mr-3 size-4 text-cyan-100 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" strokeWidth={2.4} />
       <span>More Games</span>
-      <Sparkles className="ml-3 size-3.5 text-emerald-100/80 transition-transform duration-300 group-hover:rotate-12" strokeWidth={2.4} />
+      <Dices className="ml-3 size-3.5 text-emerald-100/80 transition-transform duration-300 group-hover:rotate-12" strokeWidth={2.4} />
     </motion.button>
   );
 }

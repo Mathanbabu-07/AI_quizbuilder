@@ -468,7 +468,12 @@ export function HeroSection() {
 
   return (
     <div className="relative z-10 min-h-svh">
-      <NavigationBar isHome={screen === "home"} onAbout={showAbout} onJoinQuiz={() => setJoinModalOpen(true)} />
+      <NavigationBar
+        isHome={screen === "home"}
+        onAbout={showAbout}
+        onMoreGames={openMoreGames}
+        onJoinQuiz={() => setJoinModalOpen(true)}
+      />
 
       <JoinQuizModal
         open={joinModalOpen}
