@@ -33,18 +33,18 @@ function SideCard({
     <motion.button
       type="button"
       onClick={() => onSelect(side)}
-      className={`group relative isolate min-h-56 overflow-hidden rounded-[2rem] border p-6 text-left outline-none backdrop-blur-2xl transition-colors duration-300 hover:border-white/54 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${tone}`}
+      className={`group relative isolate min-h-44 overflow-hidden rounded-2xl border p-4 text-left outline-none backdrop-blur-2xl transition-colors duration-300 hover:border-white/54 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:min-h-56 sm:rounded-[2rem] sm:p-6 ${tone}`}
       whileHover={{ y: -8, scale: 1.018 }}
       whileTap={{ scale: 0.97 }}
       transition={{ type: "spring", stiffness: 360, damping: 28 }}
     >
       <span className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_58%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <span className="grid size-16 place-items-center rounded-2xl border border-white/14 bg-white/[0.08]">
-        <Icon className="size-8" strokeWidth={1.6} />
+      <span className="grid size-12 place-items-center rounded-xl border border-white/14 bg-white/[0.08] sm:size-16 sm:rounded-2xl">
+        <Icon className="size-6 sm:size-8" strokeWidth={1.6} />
       </span>
-      <h2 className="mt-8 font-display text-4xl font-extrabold uppercase text-white">{title}</h2>
-      <p className="mt-3 text-sm font-semibold leading-relaxed text-white/54">{subtitle}</p>
-      <Hand className="absolute bottom-5 right-5 size-16 opacity-20 transition-transform duration-300 group-hover:-rotate-12" strokeWidth={1.3} />
+      <h2 className="mt-5 font-display text-3xl font-extrabold uppercase text-white sm:mt-8 sm:text-4xl">{title}</h2>
+      <p className="mt-2 text-xs font-semibold leading-relaxed text-white/54 sm:mt-3 sm:text-sm">{subtitle}</p>
+      <Hand className="absolute bottom-4 right-4 size-12 opacity-20 transition-transform duration-300 group-hover:-rotate-12 sm:bottom-5 sm:right-5 sm:size-16" strokeWidth={1.3} />
     </motion.button>
   );
 }
@@ -61,11 +61,11 @@ function ChooseSide({ onSelect }: { onSelect: (side: PlayerSide) => void }) {
         <p className="font-display text-xs font-extrabold uppercase tracking-[0.28em] text-cyan-100/76">
           Solo Cricket Arena
         </p>
-        <h1 className="mt-4 font-display text-5xl font-extrabold uppercase text-white sm:text-7xl">
+        <h1 className="mt-3 font-display text-4xl font-extrabold uppercase text-white sm:mt-4 sm:text-7xl">
           Choose Your Side
         </h1>
       </div>
-      <div className="mt-10 grid gap-5 md:grid-cols-2">
+      <div className="mt-7 grid gap-3 sm:mt-10 sm:gap-5 md:grid-cols-2">
         <SideCard side="bat" title="BAT" subtitle="Set the target in six balls or until you are out." onSelect={onSelect} />
         <SideCard side="bowl" title="BOWL" subtitle="AI bats first. Match its number to end the innings." onSelect={onSelect} />
       </div>
@@ -143,16 +143,16 @@ export const GameHUD = memo(function GameHUD() {
   const handlePick = useCallback((value: number) => playMove(value), [playMove]);
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-svh w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+    <div className="relative z-10 mx-auto flex h-svh w-full max-w-7xl flex-col overflow-hidden px-3 py-3 sm:min-h-svh sm:px-6 sm:py-5 lg:px-8">
       <header className="flex items-center justify-between gap-3">
         <Link
           href="/?view=moreGames"
-          className="group inline-flex h-11 items-center gap-2 rounded-xl border border-white/12 bg-white/[0.07] px-4 font-display text-xs font-bold uppercase tracking-[0.14em] text-white/74 outline-none backdrop-blur-xl transition-colors duration-300 hover:border-cyan-100/34 hover:bg-cyan-100/10 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          className="group inline-flex h-9 items-center gap-2 rounded-lg border border-white/12 bg-white/[0.07] px-3 font-display text-[0.65rem] font-bold uppercase tracking-[0.12em] text-white/74 outline-none backdrop-blur-xl transition-colors duration-300 hover:border-cyan-100/34 hover:bg-cyan-100/10 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:h-11 sm:rounded-xl sm:px-4 sm:text-xs sm:tracking-[0.14em]"
         >
           <ArrowLeft className="size-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
           More Games
         </Link>
-        <div className="inline-flex h-11 items-center gap-2 rounded-xl border border-cyan-100/16 bg-cyan-100/[0.07] px-4 font-display text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-50/78 backdrop-blur-xl">
+        <div className="inline-flex h-9 items-center gap-2 rounded-lg border border-cyan-100/16 bg-cyan-100/[0.07] px-3 font-display text-[0.65rem] font-extrabold uppercase tracking-[0.14em] text-cyan-50/78 backdrop-blur-xl sm:h-11 sm:rounded-xl sm:px-4 sm:text-xs sm:tracking-[0.18em]">
           <Bot className="size-4" />
           AI Solo
         </div>
@@ -165,7 +165,7 @@ export const GameHUD = memo(function GameHUD() {
       ) : status === "result" && result ? (
         <ResultCard result={result} playerScore={playerScore} aiScore={aiScore} onTryAgain={resetMatch} />
       ) : (
-        <div className="flex flex-1 flex-col gap-6 pt-5 sm:pt-8">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 sm:gap-6 sm:pt-8">
           <ScoreBoard
             playerScore={playerScore}
             aiScore={aiScore}
@@ -174,7 +174,7 @@ export const GameHUD = memo(function GameHUD() {
             innings={innings}
             batting={batting}
           />
-          <main className="grid flex-1 content-center gap-7">
+          <main className="grid min-h-0 flex-1 content-center gap-3 sm:gap-7">
             <HandReveal move={currentMove} message={message} />
             <NeonTimer timer={timer} isRevealing={isRevealing} />
             <NumberPad disabled={disabled} selectedNumber={pendingPlayerPick} onPick={handlePick} />

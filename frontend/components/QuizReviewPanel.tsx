@@ -17,6 +17,7 @@ type QuizReviewPanelProps = {
   hostRoom: HostRoomController;
   onMultiplayerToggle: (enabled: boolean) => void;
   onStart: () => void;
+  hostOnly?: boolean;
   secondaryAction?: {
     label: string;
     onClick: () => void;
@@ -31,6 +32,7 @@ export function QuizReviewPanel({
   hostRoom,
   onMultiplayerToggle,
   onStart,
+  hostOnly = false,
   secondaryAction
 }: QuizReviewPanelProps) {
   const multiplayerReady = !multiplayerEnabled || (hostRoom.status === "active" && Boolean(hostRoom.roomState?.quiz));
@@ -79,8 +81,18 @@ export function QuizReviewPanel({
           </AnimatePresence>
         </div>
 
-        <div className="order-4 grid min-w-0 gap-5 xl:col-start-2">
-          {quiz.questions.map((question, index) => (
+        {hostOnly ? (
+          <div className="order-4 min-w-0 rounded-3xl border border-cyan-100/16 bg-cyan-100/[0.055] p-5 text-center shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl xl:col-start-2">
+            <p className="font-display text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-100/72">
+              Saved Arena Loaded
+            </p>
+            <p className="mt-3 text-sm font-semibold leading-relaxed text-white/52">
+              Room code and participants are ready for hosting.
+            </p>
+          </div>
+        ) : (
+          <div className="order-4 grid min-w-0 gap-5 xl:col-start-2">
+            {quiz.questions.map((question, index) => (
             <motion.article
               key={question.question}
               className="rounded-3xl border border-white/12 bg-white/[0.055] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 hover:border-cyan-100/28 sm:p-6"
@@ -113,8 +125,9 @@ export function QuizReviewPanel({
                 ))}
               </div>
             </motion.article>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="order-5 sticky bottom-5 mt-4 flex justify-center xl:col-start-2">
           <div className="flex flex-col items-center gap-3 sm:flex-row">

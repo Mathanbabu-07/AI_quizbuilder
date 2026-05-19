@@ -102,6 +102,7 @@ export function HeroSection() {
   const [multiplayerEnabled, setMultiplayerEnabled] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [manualDraft, setManualDraft] = useState<ManualQuizDraft | null>(null);
+  const [openedSavedQuizId, setOpenedSavedQuizId] = useState<string | null>(null);
   const [savedQuizzes, setSavedQuizzes] = useState<SavedManualQuizSummary[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
@@ -170,6 +171,7 @@ export function HeroSection() {
     setSettings(null);
     setResult(null);
     setManualDraft(null);
+    setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setErrorMessage(null);
@@ -183,6 +185,7 @@ export function HeroSection() {
     setSettings(null);
     setResult(null);
     setManualDraft(null);
+    setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setErrorMessage(null);
@@ -195,6 +198,7 @@ export function HeroSection() {
     setSettings(null);
     setResult(null);
     setManualDraft(null);
+    setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setErrorMessage(null);
@@ -265,6 +269,7 @@ export function HeroSection() {
     setMultiplayerEnabled(false);
     setRoomCode(null);
     setManualDraft(null);
+    setOpenedSavedQuizId(null);
     participantRoom.leaveRoom();
     if (creationMode === "ai") {
       goToScreen("create");
@@ -304,6 +309,7 @@ export function HeroSection() {
     setManualDraft(null);
     setErrorMessage(null);
     setCreationMode("manual");
+    setOpenedSavedQuizId(null);
     goToScreen("manualMcq");
   };
 
@@ -315,7 +321,7 @@ export function HeroSection() {
 
     try {
       const saved = await getManualQuiz(quizId, hostId);
-      setManualDraft({
+      const nextDraft = {
         id: saved.id,
         title: saved.title,
         targetQuestionCount: saved.question_count,
@@ -328,10 +334,17 @@ export function HeroSection() {
           time_limit: question.time_limit,
           order_index: index
         }))
-      });
+      };
+      const nextRoomCode = saved.room_code ?? generateRoomCode();
+      setManualDraft(nextDraft);
+      setQuiz(manualQuizToGeneratedQuiz(nextDraft));
+      setSettings(manualQuizToSettings(nextDraft));
       setErrorMessage(null);
       setCreationMode("manual");
-      goToScreen("manualMcq");
+      setMultiplayerEnabled(true);
+      setRoomCode(nextRoomCode);
+      setOpenedSavedQuizId(saved.id);
+      goToScreen("review");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Could not open saved quiz.");
     }
@@ -347,6 +360,7 @@ export function HeroSection() {
       setSavedQuizzes((items) => items.filter((item) => item.id !== quizId));
       if (manualDraft?.id === quizId) {
         setManualDraft(null);
+        setOpenedSavedQuizId(null);
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Could not delete saved quiz.");
@@ -392,6 +406,7 @@ export function HeroSection() {
       };
 
       setManualDraft(nextDraft);
+      setOpenedSavedQuizId(null);
       setQuiz(manualQuizToGeneratedQuiz(nextDraft));
       setSettings(manualQuizToSettings(nextDraft));
       setCreationMode("manual");
@@ -419,6 +434,14 @@ export function HeroSection() {
 
   const handleSaveStartLater = () => {
     setCreationMode("manual");
+    setMultiplayerEnabled(false);
+    setRoomCode(null);
+    setOpenedSavedQuizId(null);
+    goToScreen("questionTypes");
+  };
+
+  const handleBackFromSavedReview = () => {
+    setOpenedSavedQuizId(null);
     setMultiplayerEnabled(false);
     setRoomCode(null);
     goToScreen("questionTypes");
@@ -559,8 +582,14 @@ export function HeroSection() {
             hostRoom={hostRoom}
             onMultiplayerToggle={handleMultiplayerToggle}
             onStart={handleStartQuiz}
+            hostOnly={Boolean(openedSavedQuizId)}
             secondaryAction={
-              manualDraft
+              openedSavedQuizId
+                ? {
+                    label: "Back",
+                    onClick: handleBackFromSavedReview
+                  }
+                : manualDraft
                 ? {
                     label: "Save & Start Later",
                     onClick: handleSaveStartLater

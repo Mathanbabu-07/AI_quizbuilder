@@ -1,9 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, Check, ChevronRight, Clock3, Hash, Save, Sparkles, Trophy } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Clock3, Hash, Save, Trophy } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AnimatedButton } from "@/components/AnimatedButton";
 import { SavedQuizzesPanel } from "@/components/SavedQuizzesPanel";
 import type { ManualQuizDraft, ManualQuizQuestion, SavedManualQuizSummary } from "@/types/manualQuiz";
 
@@ -71,8 +70,9 @@ export function ManualQuizBuilder({
       return;
     }
 
+    const compact = window.matchMedia("(max-width: 639px)").matches;
     textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(340, Math.max(170, textarea.scrollHeight))}px`;
+    textarea.style.height = `${Math.min(compact ? 190 : 340, Math.max(compact ? 118 : 170, textarea.scrollHeight))}px`;
   }, [current.question_text]);
 
   const targetCount = clampQuestionCount(Number(targetQuestionCount));
@@ -172,13 +172,13 @@ export function ManualQuizBuilder({
 
   return (
     <motion.section
-      className="relative z-10 min-h-dvh px-4 py-24 sm:px-8"
+      className="relative z-10 min-h-dvh px-3 py-20 sm:px-8 sm:py-24"
       initial={{ opacity: 0, y: 34, filter: "blur(12px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="mx-auto grid w-full max-w-[92rem] gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <div className="mx-auto grid w-full max-w-[92rem] gap-4 sm:gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
         <SavedQuizzesPanel
           quizzes={savedQuizzes}
           loading={loadingSaved}
@@ -186,26 +186,26 @@ export function ManualQuizBuilder({
           onDelete={onDeleteSaved}
         />
 
-        <div className="rounded-[2rem] border border-white/12 bg-slate-950/28 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur-2xl sm:p-6">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="rounded-[1.4rem] border border-white/12 bg-slate-950/28 p-3 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur-2xl sm:rounded-[2rem] sm:p-6">
+          <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
             <label className="min-w-0 flex-1">
-              <span className="mb-2 block font-display text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-100/72">
+              <span className="mb-1.5 block font-display text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-cyan-100/72 sm:mb-2 sm:text-xs sm:tracking-[0.18em]">
                 Quiz Title
               </span>
-              <span className="flex items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.055] px-4 py-3">
+              <span className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.055] px-3 py-2.5 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3">
                 <Save className="size-4 shrink-0 text-cyan-100/68" />
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent font-display text-xl font-extrabold text-white outline-none placeholder:text-white/26 sm:text-2xl"
+                  className="min-w-0 flex-1 bg-transparent font-display text-base font-extrabold text-white outline-none placeholder:text-white/26 sm:text-2xl"
                   placeholder="Quiz title"
                 />
               </span>
             </label>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:w-[24rem]">
-              <label className="rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3">
-                <span className="mb-2 flex items-center justify-center gap-2 font-display text-xs font-extrabold uppercase tracking-[0.18em] text-white/46">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:w-[24rem]">
+              <label className="rounded-xl border border-white/12 bg-white/[0.045] px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                <span className="mb-1.5 flex items-center justify-center gap-2 font-display text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-white/46 sm:mb-2 sm:text-xs sm:tracking-[0.18em]">
                   <Hash className="size-3.5 text-cyan-100/58" />
                   Needed Count
                 </span>
@@ -215,22 +215,22 @@ export function ManualQuizBuilder({
                   min={1}
                   max={100}
                   onChange={(event) => setTargetQuestionCount(event.target.value)}
-                  className="w-full bg-transparent text-center font-display text-2xl font-extrabold text-white outline-none"
+                  className="w-full bg-transparent text-center font-display text-xl font-extrabold text-white outline-none sm:text-2xl"
                 />
               </label>
 
-              <div className="rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3 text-center">
-                <p className="font-display text-xs font-extrabold uppercase tracking-[0.18em] text-white/46">
+              <div className="rounded-xl border border-white/12 bg-white/[0.045] px-3 py-2.5 text-center sm:rounded-2xl sm:px-4 sm:py-3">
+                <p className="font-display text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-white/46 sm:text-xs sm:tracking-[0.18em]">
                   Progress
                 </p>
-                <p className="mt-1 font-display text-2xl font-extrabold text-white">
+                <p className="mt-1 font-display text-xl font-extrabold text-white sm:text-2xl">
                   {Math.min(finalizedCount, targetCount)} / {targetCount}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="mb-6 h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/10 sm:mb-6 sm:h-2">
             <motion.div
               className="h-full origin-left rounded-full bg-gradient-to-r from-cyan-200 via-violet-200 to-fuchsia-200 will-change-transform"
               initial={false}
@@ -239,39 +239,10 @@ export function ManualQuizBuilder({
             />
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-[13rem_minmax(0,1fr)]">
-            <div className="order-2 flex flex-col gap-3 xl:order-1">
-              <button
-                type="button"
-                onClick={saveQuiz}
-                disabled={!readyToSave || saving}
-                className={`rounded-2xl border px-4 py-4 font-display text-xs font-extrabold uppercase tracking-[0.16em] transition-all duration-300 ${
-                  readyToSave
-                    ? "animate-pulse border-cyan-100/44 bg-cyan-100/14 text-cyan-50 shadow-[0_0_42px_rgba(103,232,249,0.28)]"
-                    : "border-white/10 bg-white/[0.035] text-white/34"
-                }`}
-              >
-                <Save className="mx-auto mb-2 size-5" />
-                {saving ? "Saving..." : "Save Quiz"}
-              </button>
-              <button
-                type="button"
-                onClick={saveNext}
-                disabled={saveNextDisabled}
-                className="rounded-2xl border border-white/12 bg-white/[0.055] px-4 py-4 font-display text-xs font-extrabold uppercase tracking-[0.16em] text-white/72 transition-colors hover:border-fuchsia-100/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronRight className="mx-auto mb-2 size-5" />
-                {atLimit ? "Limit Reached" : "Save & Next"}
-              </button>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-xs font-semibold leading-relaxed text-white/42">
-                <Sparkles className="mb-2 size-4 text-cyan-100/62" />
-                Select the glowing check on one option to mark the correct answer.
-              </div>
-            </div>
-
-            <div className="order-1 min-w-0 xl:order-2">
+          <div className="grid gap-4 sm:gap-5">
+            <div className="min-w-0">
               <label className="block">
-                <span className="mb-3 block font-display text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-100/72">
+                <span className="mb-2 block font-display text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-cyan-100/72 sm:mb-3 sm:text-xs sm:tracking-[0.18em]">
                   Type Question Here
                 </span>
                 <textarea
@@ -279,11 +250,11 @@ export function ManualQuizBuilder({
                   value={current.question_text}
                   onChange={(event) => setCurrent((state) => ({ ...state, question_text: event.target.value }))}
                   placeholder="Write your question, paste code, or add a formatted prompt..."
-                  className="min-h-44 w-full resize-none rounded-[1.7rem] border border-white/12 bg-white/[0.055] px-5 py-5 font-sans text-lg font-semibold leading-relaxed text-white outline-none shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition-colors duration-200 placeholder:text-white/25 focus:border-cyan-100/40"
+                  className="min-h-32 w-full resize-none rounded-[1.2rem] border border-white/12 bg-white/[0.055] px-4 py-4 font-sans text-base font-semibold leading-relaxed text-white outline-none shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition-colors duration-200 placeholder:text-white/25 focus:border-cyan-100/40 sm:min-h-44 sm:rounded-[1.7rem] sm:px-5 sm:py-5 sm:text-lg"
                 />
               </label>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
                 <NumberMiniCard
                   label="Time Per Question"
                   icon={<Clock3 className="size-4" />}
@@ -302,14 +273,14 @@ export function ManualQuizBuilder({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-3">
             {current.options.map((option, index) => {
               const selected = current.correctIndex === index;
 
               return (
                 <div
                   key={index}
-                  className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 ${
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all duration-200 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3 ${
                     selected
                       ? "border-emerald-100/46 bg-emerald-100/12 shadow-[0_0_30px_rgba(52,211,153,0.15)]"
                       : "border-white/10 bg-white/[0.045] hover:border-cyan-100/24"
@@ -318,7 +289,7 @@ export function ManualQuizBuilder({
                   <button
                     type="button"
                     onClick={() => setCurrent((state) => ({ ...state, correctIndex: index }))}
-                    className={`grid size-9 shrink-0 place-items-center rounded-xl border transition-colors ${
+                    className={`grid size-8 shrink-0 place-items-center rounded-lg border transition-colors sm:size-9 sm:rounded-xl ${
                       selected
                         ? "border-emerald-100/50 bg-emerald-100/16 text-emerald-50"
                         : "border-white/12 bg-white/[0.045] text-white/34"
@@ -336,6 +307,31 @@ export function ManualQuizBuilder({
                 </div>
               );
             })}
+          </div>
+
+          <div className="sticky bottom-2 z-20 mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/12 bg-slate-950/78 p-2 shadow-[0_14px_42px_rgba(0,0,0,0.34)] backdrop-blur-2xl sm:static sm:mt-5 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
+            <button
+              type="button"
+              onClick={saveQuiz}
+              disabled={!readyToSave || saving}
+              className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-3 font-display text-[0.68rem] font-extrabold uppercase tracking-[0.12em] transition-all duration-300 sm:h-14 sm:rounded-2xl sm:text-xs sm:tracking-[0.16em] ${
+                readyToSave
+                  ? "border-cyan-100/44 bg-cyan-100/14 text-cyan-50 shadow-[0_0_32px_rgba(103,232,249,0.22)]"
+                  : "border-white/10 bg-white/[0.035] text-white/34"
+              }`}
+            >
+              <Save className="size-4" />
+              {saving ? "Saving" : "Save Quiz"}
+            </button>
+            <button
+              type="button"
+              onClick={saveNext}
+              disabled={saveNextDisabled}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.055] px-3 font-display text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-white/72 transition-colors hover:border-fuchsia-100/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:h-14 sm:rounded-2xl sm:text-xs sm:tracking-[0.16em]"
+            >
+              <ChevronRight className="size-4" />
+              {atLimit ? "Limit" : "Save & Next"}
+            </button>
           </div>
 
           <AnimatePresence>
@@ -356,12 +352,6 @@ export function ManualQuizBuilder({
             ) : null}
           </AnimatePresence>
 
-          <div className="mt-7 flex justify-center">
-            <AnimatedButton onClick={saveQuiz} disabled={!readyToSave || saving}>
-              <Save className="mr-3 size-4" />
-              {saving ? "Saving Quiz" : readyToSave ? "Save Quiz" : `Finish ${Math.max(0, targetCount - finalizedCount)} More`}
-            </AnimatedButton>
-          </div>
         </div>
       </div>
     </motion.section>
@@ -382,8 +372,8 @@ function NumberMiniCard({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
-      <span className="mb-2 flex items-center gap-2 font-display text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-white/44">
+    <label className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+      <span className="mb-1.5 flex items-center gap-2 font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/44 sm:mb-2 sm:text-[0.68rem] sm:tracking-[0.16em]">
         {icon}
         {label}
       </span>
@@ -393,7 +383,7 @@ function NumberMiniCard({
           type="number"
           min={suffix === "sec" ? 5 : 1}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent font-display text-xl font-extrabold text-white outline-none"
+          className="min-w-0 flex-1 bg-transparent font-display text-lg font-extrabold text-white outline-none sm:text-xl"
         />
         <span className="text-xs font-bold uppercase text-white/38">{suffix}</span>
       </span>

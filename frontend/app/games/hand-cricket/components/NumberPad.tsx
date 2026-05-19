@@ -13,14 +13,14 @@ const numbers = [1, 2, 3, 4, 5, 6];
 
 export const NumberPad = memo(function NumberPad({ disabled, selectedNumber, onPick }: NumberPadProps) {
   return (
-    <div className="mx-auto grid w-full max-w-xl grid-cols-3 gap-3 sm:gap-4">
+    <div className="mx-auto grid w-full max-w-sm grid-cols-3 gap-2 sm:max-w-xl sm:gap-4">
       {numbers.map((number) => (
         <motion.button
           key={number}
           type="button"
           disabled={disabled}
           onClick={() => onPick(number)}
-          className={`group relative isolate h-16 overflow-hidden rounded-2xl border font-display text-2xl font-extrabold text-white shadow-[0_14px_42px_rgba(0,0,0,0.28)] outline-none backdrop-blur-xl transition-colors duration-300 hover:border-cyan-100/52 hover:bg-cyan-100/14 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed sm:h-20 sm:text-3xl ${
+          className={`group relative isolate h-12 overflow-hidden rounded-xl border font-display text-xl font-extrabold text-white shadow-[0_10px_30px_rgba(0,0,0,0.24)] outline-none backdrop-blur-xl transition-colors duration-300 hover:border-cyan-100/52 hover:bg-cyan-100/14 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed sm:h-20 sm:rounded-2xl sm:text-3xl sm:shadow-[0_14px_42px_rgba(0,0,0,0.28)] ${
             selectedNumber === number
               ? "border-emerald-100/62 bg-emerald-100/18 opacity-100"
               : "border-cyan-100/20 bg-white/[0.09] disabled:opacity-45"
