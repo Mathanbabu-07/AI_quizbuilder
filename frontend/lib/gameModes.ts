@@ -1,4 +1,4 @@
-export type GameModeSlug = "hand-cricket" | "emoji-crush" | "memory-grid";
+export type GameModeSlug = "hand-cricket" | "emoji-rush" | "memory-grid";
 
 export type GameMode = {
   slug: GameModeSlug;
@@ -19,11 +19,11 @@ export const gameModes: GameMode[] = [
     tone: "cricket"
   },
   {
-    slug: "emoji-crush",
-    title: "EMOJI CRUSH",
+    slug: "emoji-rush",
+    title: "EMOJI RUSH",
     eyebrow: "Combo Arcade",
-    description: "A vibrant emoji puzzle mode built for fast combo chains.",
-    path: "/games/emoji-crush",
+    description: "A vibrant match-3 arcade run built for fast combo chains.",
+    path: "/games/emoji-rush",
     tone: "emoji"
   },
   {

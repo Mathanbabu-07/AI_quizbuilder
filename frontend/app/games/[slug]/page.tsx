@@ -10,7 +10,9 @@ type GamePageProps = {
 };
 
 export function generateStaticParams() {
-  return gameModes.filter((game) => game.slug !== "hand-cricket").map((game) => ({ slug: game.slug }));
+  return gameModes
+    .filter((game) => game.slug !== "hand-cricket" && game.slug !== "emoji-rush")
+    .map((game) => ({ slug: game.slug }));
 }
 
 export default async function GamePage({ params }: GamePageProps) {
