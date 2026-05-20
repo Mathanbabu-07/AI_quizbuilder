@@ -1,4 +1,4 @@
-import { getRoundEmojis, type EmojiRushRoundConfig } from "@/app/games/emoji-rush/game/config";
+import { getRoundEmojis, type EmojiRushPiece, type EmojiRushRoundConfig } from "@/app/games/emoji-rush/game/config";
 
 export type BoardPoint = {
   row: number;
@@ -7,7 +7,7 @@ export type BoardPoint = {
 
 export type EmojiTile = BoardPoint & {
   id: string;
-  emoji: string;
+  emoji: EmojiRushPiece;
   status: "idle" | "matched" | "new";
   power: number;
 };
@@ -26,11 +26,11 @@ function nextTileId() {
   return `emoji_tile_${tileCounter}`;
 }
 
-function randomEmoji(emojis: string[]) {
-  return emojis[Math.floor(Math.random() * emojis.length)] ?? emojis[0] ?? "🍓";
+function randomEmoji(emojis: EmojiRushPiece[]) {
+  return emojis[Math.floor(Math.random() * emojis.length)] ?? emojis[0] ?? "berry";
 }
 
-function makeTile(row: number, col: number, emojis: string[], status: EmojiTile["status"] = "idle"): EmojiTile {
+function makeTile(row: number, col: number, emojis: EmojiRushPiece[], status: EmojiTile["status"] = "idle"): EmojiTile {
   return {
     id: nextTileId(),
     row,
@@ -47,6 +47,16 @@ function wouldCreateLine(board: EmojiTile[], size: number, row: number, col: num
   const upOne = board.find((tile) => tile.row === row - 1 && tile.col === col)?.emoji;
   const upTwo = board.find((tile) => tile.row === row - 2 && tile.col === col)?.emoji;
   return (leftOne === emoji && leftTwo === emoji) || (upOne === emoji && upTwo === emoji) || size < 3;
+}
+
+function tileKey(row: number, col: number) {
+  return `${row}:${col}`;
+}
+
+function buildLookup(board: EmojiTile[]) {
+  const lookup = new Map<string, EmojiTile>();
+  board.forEach((tile) => lookup.set(tileKey(tile.row, tile.col), tile));
+  return lookup;
 }
 
 export function createBoard(config: EmojiRushRoundConfig): EmojiTile[] {
@@ -112,11 +122,12 @@ function matchKey(cells: BoardPoint[]) {
 
 export function findMatches(board: EmojiTile[], size: number): EmojiMatch[] {
   const matches: EmojiMatch[] = [];
+  const lookup = buildLookup(board);
 
   for (let row = 0; row < size; row += 1) {
     let run: EmojiTile[] = [];
     for (let col = 0; col < size; col += 1) {
-      const tile = tileAt(board, { row, col });
+      const tile = lookup.get(tileKey(row, col));
       const previous = run[0];
       if (tile && previous && tile.emoji === previous.emoji) {
         run.push(tile);
@@ -137,7 +148,7 @@ export function findMatches(board: EmojiTile[], size: number): EmojiMatch[] {
   for (let col = 0; col < size; col += 1) {
     let run: EmojiTile[] = [];
     for (let row = 0; row < size; row += 1) {
-      const tile = tileAt(board, { row, col });
+      const tile = lookup.get(tileKey(row, col));
       const previous = run[0];
       if (tile && previous && tile.emoji === previous.emoji) {
         run.push(tile);

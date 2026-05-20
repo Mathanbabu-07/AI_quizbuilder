@@ -9,7 +9,9 @@ export type EmojiRushRoundConfig = {
   difficulty: "Sweet" | "Zesty" | "Wild" | "Fever" | "Legend";
 };
 
-export const EMOJI_POOL = ["🍓", "🍋", "🍇", "🍬", "💎", "🌟", "🍒", "🧁"];
+export const EMOJI_POOL = ["berry", "lemon", "grape", "candy", "diamond", "star", "cherry", "cupcake"] as const;
+
+export type EmojiRushPiece = (typeof EMOJI_POOL)[number];
 
 export const ROUND_CONFIGS: EmojiRushRoundConfig[] = [
   {
@@ -47,8 +49,8 @@ export const ROUND_CONFIGS: EmojiRushRoundConfig[] = [
     title: "Emoji Fever",
     boardSize: 9,
     emojiVariety: 7,
-    targetPoints: 14,
-    moveLimit: 18,
+    targetPoints: 18,
+    moveLimit: 20,
     timeLimitSeconds: 72,
     difficulty: "Fever"
   },
@@ -57,8 +59,8 @@ export const ROUND_CONFIGS: EmojiRushRoundConfig[] = [
     title: "Golden Rush",
     boardSize: 9,
     emojiVariety: 8,
-    targetPoints: 14,
-    moveLimit: 16,
+    targetPoints: 25,
+    moveLimit: 22,
     timeLimitSeconds: 66,
     difficulty: "Legend"
   }

@@ -18,13 +18,12 @@ from app.models.emoji_rush import (
 
 logger = logging.getLogger("genquiz.emoji_rush")
 
-ROUND_TARGET_POINTS = 14
 ROUND_CONFIGS: dict[int, dict[str, int]] = {
-    1: {"board_size": 7, "emoji_variety": 5, "time_limit_ms": 90_000},
-    2: {"board_size": 7, "emoji_variety": 6, "time_limit_ms": 84_000},
-    3: {"board_size": 8, "emoji_variety": 6, "time_limit_ms": 78_000},
-    4: {"board_size": 9, "emoji_variety": 7, "time_limit_ms": 72_000},
-    5: {"board_size": 9, "emoji_variety": 8, "time_limit_ms": 66_000},
+    1: {"board_size": 7, "emoji_variety": 5, "target_points": 14, "time_limit_ms": 90_000},
+    2: {"board_size": 7, "emoji_variety": 6, "target_points": 14, "time_limit_ms": 84_000},
+    3: {"board_size": 8, "emoji_variety": 6, "target_points": 14, "time_limit_ms": 78_000},
+    4: {"board_size": 9, "emoji_variety": 7, "target_points": 18, "time_limit_ms": 72_000},
+    5: {"board_size": 9, "emoji_variety": 8, "target_points": 25, "time_limit_ms": 66_000},
 }
 
 
@@ -245,7 +244,7 @@ class EmojiRushService:
         expected_points = request.match3_count * 2 + request.match5_count * 3
         if request.points != expected_points:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Round score failed validation.")
-        if request.completed and request.points < ROUND_TARGET_POINTS:
+        if request.completed and request.points < config["target_points"]:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Round target was not reached.")
         if request.match5_count > request.match3_count + request.match5_count:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Round combo counts are invalid.")
@@ -356,7 +355,8 @@ class EmojiRushService:
         by_round = {int(row.get("round_number") or 0): row for row in rounds}
         for round_number in range(1, 6):
             row = by_round.get(round_number)
-            if not row or not row.get("completed") or int(row.get("points") or 0) < ROUND_TARGET_POINTS:
+            target_points = ROUND_CONFIGS[round_number]["target_points"]
+            if not row or not row.get("completed") or int(row.get("points") or 0) < target_points:
                 break
             completed = round_number
         return completed

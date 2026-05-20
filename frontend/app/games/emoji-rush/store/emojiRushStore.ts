@@ -74,6 +74,7 @@ type EmojiRushState = {
   tick: () => void;
   trySwap: (from: BoardPoint, to: BoardPoint) => Promise<void>;
   continueNextRound: () => void;
+  repairRoundBoard: () => void;
   finishGame: () => void;
   restartGame: () => void;
   clearEffects: () => void;
@@ -130,6 +131,7 @@ function setupRound(config: EmojiRushRoundConfig) {
     combo: 0,
     isResolving: false,
     roundStartedAt: Date.now(),
+    lastRoundResult: null,
     effects: []
   };
 }
@@ -428,6 +430,34 @@ export const useEmojiRushStore = create<EmojiRushState>((set, get) => ({
       ...setupRound(config),
       phase: "playing"
     });
+  },
+
+  repairRoundBoard: () => {
+    const state = get();
+    const config = getRoundConfig(state.round);
+    const expectedTiles = config.boardSize * config.boardSize;
+    const hasInvalidTiles = state.board.some(
+      (tile) => tile.row < 0 || tile.col < 0 || tile.row >= config.boardSize || tile.col >= config.boardSize
+    );
+
+    if (state.phase === "playing" && (state.board.length !== expectedTiles || hasInvalidTiles)) {
+      set({
+        board: createBoard(config),
+        isResolving: false,
+        effects: [
+          ...state.effects,
+          {
+            id: effectId("refresh"),
+            type: "refresh",
+            row: Math.floor(config.boardSize / 2),
+            col: Math.floor(config.boardSize / 2),
+            label: "Grid aligned!",
+            power: 4,
+            createdAt: Date.now()
+          }
+        ]
+      });
+    }
   },
 
   finishGame: () => {
