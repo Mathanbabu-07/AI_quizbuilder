@@ -223,13 +223,18 @@ export function MoreGamesHub({ onBack }: MoreGamesHubProps) {
 
   return (
     <motion.section
-      className="relative z-10 min-h-dvh overflow-hidden px-4 py-24 sm:px-8"
+      className="relative isolate z-10 min-h-dvh overflow-hidden px-4 py-24 sm:px-8"
       initial={{ opacity: 0, y: 34, filter: "blur(12px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45"
+          style={{ backgroundImage: "url('/games/more-games-background.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,8,23,0.82),rgba(8,18,42,0.58)_48%,rgba(2,6,23,0.84)),radial-gradient(circle_at_26%_24%,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_78%_78%,rgba(217,70,239,0.18),transparent_32%)]" />
         <motion.div
           className="absolute left-[8%] top-[14%] size-28 rounded-full border border-cyan-100/10"
           animate={motionEnabled ? { y: [0, -14, 0], rotate: [0, 18, 0] } : false}
