@@ -19,6 +19,10 @@ import { getRoundConfig, medalForRounds, type EmojiRushRoundConfig } from "@/app
 export type EmojiRushPhase = "intro" | "playing" | "paused" | "round-complete" | "game-over";
 export type EmojiRushMedal = "gold" | "silver" | "bronze" | "none";
 export type BackendStatus = "idle" | "saving" | "synced" | "offline" | "error";
+export type EmojiRushSoundCue = {
+  id: string;
+  type: "match";
+};
 
 export type EmojiRushEffect = BoardPoint & {
   id: string;
@@ -64,6 +68,7 @@ type EmojiRushState = {
   roundStartedAt: number;
   lastRoundResult: EmojiRushRoundResult | null;
   effects: EmojiRushEffect[];
+  soundCue: EmojiRushSoundCue | null;
   backendStatus: BackendStatus;
   backendMessage: string;
   startGame: (playerId: string, playerName: string) => void;
@@ -104,6 +109,7 @@ const initialRuntime = {
   roundStartedAt: 0,
   lastRoundResult: null,
   effects: [] as EmojiRushEffect[],
+  soundCue: null as EmojiRushSoundCue | null,
   backendStatus: "idle" as BackendStatus,
   backendMessage: ""
 };
@@ -312,6 +318,10 @@ export const useEmojiRushStore = create<EmojiRushState>((set, get) => ({
         totalScore: nextTotal,
         combo: cascade,
         bestCombo: maxCombo,
+        soundCue: {
+          id: effectId("sound"),
+          type: "match"
+        },
         effects: [...get().effects, ...moveEffects.splice(0, moveEffects.length)]
       });
       await wait(cascade > 1 ? 170 : 140);

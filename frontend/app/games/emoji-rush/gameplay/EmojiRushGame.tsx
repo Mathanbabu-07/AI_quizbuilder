@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ArrowLeft, Crown, Pause, Play, RotateCcw, Sparkles, Star, Trophy } from "lucide-react";
 import { ROUND_CONFIGS, getRoundConfig } from "@/app/games/emoji-rush/game/config";
+import { useEmojiRushAudio } from "@/app/games/emoji-rush/hooks/useEmojiRushAudio";
 import { useEmojiRushBackend } from "@/app/games/emoji-rush/hooks/useEmojiRushBackend";
 import { useEmojiRushStore, type EmojiRushMedal } from "@/app/games/emoji-rush/store/emojiRushStore";
 
@@ -85,15 +86,13 @@ function IntroScreen({ onStart }: { onStart: (name: string) => void }) {
               Emoji Rush
             </h1>
             <div className="mx-auto mt-4 grid max-w-md grid-cols-3 gap-2">
-              {["🍓", "🍬", "💎"].map((emoji, index) => (
-                <motion.span
+              {["🍓", "🍬", "💎"].map((emoji) => (
+                <span
                   key={emoji}
                   className="grid aspect-square place-items-center rounded-3xl border border-white/45 bg-white/18 text-4xl shadow-[inset_0_2px_0_rgba(255,255,255,0.28),0_12px_20px_rgba(95,21,53,0.24)]"
-                  animate={motionEnabled ? { y: [0, -10, 0], rotate: [-4, 5, -4] } : undefined}
-                  transition={{ duration: 2.4, delay: index * 0.15, repeat: Infinity, ease: "easeInOut" }}
                 >
                   {emoji}
-                </motion.span>
+                </span>
               ))}
             </div>
           </motion.div>
@@ -527,9 +526,9 @@ function GamePlayScreen() {
         <PixiBoard />
       </div>
       <footer className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 pb-3 sm:px-6 sm:pb-4">
-        <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/34 bg-[#731d3a]/62 px-3 py-2 shadow-[0_8px_18px_rgba(70,13,38,0.2)] backdrop-blur-md">
+        <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/34 bg-[#731d3a]/68 px-3 py-2 shadow-[0_8px_18px_rgba(70,13,38,0.2)] backdrop-blur-md">
           {["🍓", "🍬", "💎", "🌟"].map((item) => (
-            <span key={item} className="grid size-8 place-items-center rounded-full bg-white/18 text-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.24)]">
+            <span key={item} className="grid size-9 place-items-center rounded-full bg-white/18 text-xl shadow-[inset_0_2px_0_rgba(255,255,255,0.22),0_5px_10px_rgba(70,13,38,0.16)]">
               {item}
             </span>
           ))}
@@ -548,6 +547,7 @@ function GamePlayScreen() {
 export function EmojiRushGame() {
   const phase = useEmojiRushStore((state) => state.phase);
   const { leaderboard, startSecureGame } = useEmojiRushBackend();
+  useEmojiRushAudio();
 
   return (
     <CandyShell>

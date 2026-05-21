@@ -280,10 +280,9 @@ function TileGem({ tile, layout }: { tile: EmojiTile; layout: BoardLayout }) {
     node.y += (next.y - node.y) * speed;
     node.alpha += (next.alpha - node.alpha) * Math.min(1, 0.32 * ticker.deltaTime);
     const nextScale = node.scale.x + (next.scale - node.scale.x) * Math.min(1, 0.28 * ticker.deltaTime);
-    const shinePulse = 1 + Math.sin(performance.now() / 430 + tile.row + tile.col) * 0.012;
-    node.scale.set(nextScale * shinePulse);
-    node.rotation = Math.sin(performance.now() / 320 + tile.row + tile.col) * 0.012;
-  }, [tile.col, tile.row]);
+    node.scale.set(nextScale);
+    node.rotation += (0 - node.rotation) * Math.min(1, 0.22 * ticker.deltaTime);
+  }, []);
 
   useTick(onTick);
 
@@ -507,7 +506,7 @@ export function PixiBoard() {
     <div
       ref={ref}
       {...bind()}
-      className="relative isolate aspect-square overflow-hidden rounded-[1.35rem] border-[3px] border-white/45 bg-[#44335e] shadow-[0_20px_50px_rgba(85,17,58,0.38),inset_0_0_0_4px_rgba(255,255,255,0.12)]"
+      className="relative isolate aspect-square overflow-hidden rounded-[1.35rem] border-[3px] border-white/45 bg-[#44335e] shadow-[0_20px_50px_rgba(85,17,58,0.38),inset_0_0_0_4px_rgba(255,255,255,0.12)] [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full"
       style={{
         width: "min(94vw, 62svh, 620px)",
         height: "min(94vw, 62svh, 620px)",
@@ -518,6 +517,7 @@ export function PixiBoard() {
       <div className="pointer-events-none absolute inset-0 z-10 rounded-[1.15rem] bg-[radial-gradient(circle_at_30%_12%,rgba(255,255,255,0.2),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.08),transparent_44%)]" />
       {size > 0 ? (
         <Application
+          key={`${size}-${config.boardSize}`}
           width={size}
           height={size}
           antialias
