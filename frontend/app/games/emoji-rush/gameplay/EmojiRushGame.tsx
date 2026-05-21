@@ -345,7 +345,7 @@ function medalLabel(medal: EmojiRushMedal) {
   return "Run Complete";
 }
 
-function MedalScreen({ leaderboard }: { leaderboard: ReturnType<typeof useEmojiRushBackend>["leaderboard"] }) {
+function MedalScreen() {
   const medal = useEmojiRushStore((state) => state.medal);
   const totalScore = useEmojiRushStore((state) => state.totalScore);
   const completedRounds = useEmojiRushStore((state) => state.completedRounds);
@@ -411,88 +411,50 @@ function MedalScreen({ leaderboard }: { leaderboard: ReturnType<typeof useEmojiR
       </div>
 
       <div className="grid min-h-0 place-items-center py-4">
-        <div className="grid w-full max-w-5xl gap-4 md:grid-cols-[1fr_0.75fr]">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/42 bg-[#731d3a]/74 p-6 text-center shadow-[0_24px_70px_rgba(84,15,44,0.36)] backdrop-blur-md">
-            <div className="absolute inset-x-0 top-0 h-2 bg-[linear-gradient(90deg,#ffec8b,#ff71bd,#7de8ff,#ffec8b)]" />
-            <div
-              ref={crownRef}
-              className="mx-auto grid size-28 place-items-center rounded-full border border-white/65 text-6xl shadow-[0_0_42px_rgba(255,226,91,0.44),0_12px_0_rgba(129,32,54,0.42)]"
-              style={{ backgroundColor: medalTone }}
-            >
-              {medal === "gold" ? <Crown className="size-16 fill-[#b25a00] text-[#b25a00]" /> : <Trophy className="size-16 fill-[#7a2441] text-[#7a2441]" />}
-            </div>
-            <p className="mt-6 font-display text-xs font-extrabold uppercase tracking-[0.26em] text-[#ffe9a8]">
-              {completedRounds}/5 Rounds
-            </p>
-            <h1 className="mt-2 font-display text-5xl font-extrabold uppercase text-white drop-shadow-[0_7px_0_rgba(100,17,52,0.45)] sm:text-6xl">
-              {medalLabel(medal)}
-            </h1>
-            <div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-white/34 bg-white/18 p-3">
-                <p className="font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/78">
-                  Score
-                </p>
-                <p className="font-display text-3xl font-extrabold text-white">{totalScore}</p>
-              </div>
-              <div className="rounded-2xl border border-white/34 bg-white/18 p-3">
-                <p className="font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/78">
-                  Rounds
-                </p>
-                <p className="font-display text-3xl font-extrabold text-white">{completedRounds}</p>
-              </div>
-              <div className="rounded-2xl border border-white/34 bg-white/18 p-3">
-                <p className="font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/78">
-                  Combo
-                </p>
-                <p className="font-display text-3xl font-extrabold text-white">x{bestCombo}</p>
-              </div>
-            </div>
-            <motion.button
-              type="button"
-              onClick={restartGame}
-              className={`${candyButton} mt-6`}
-              whileTap={{ y: 6, scale: 0.98 }}
-            >
-              <RotateCcw className="size-5" />
-              Play Again
-            </motion.button>
+        <div className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/42 bg-[#731d3a]/74 p-6 text-center shadow-[0_24px_70px_rgba(84,15,44,0.36)] backdrop-blur-md sm:p-8">
+          <div className="absolute inset-x-0 top-0 h-2 bg-[linear-gradient(90deg,#ffec8b,#ff71bd,#7de8ff,#ffec8b)]" />
+          <div
+            ref={crownRef}
+            className="mx-auto grid size-28 place-items-center rounded-full border border-white/65 text-6xl shadow-[0_0_42px_rgba(255,226,91,0.44),0_12px_0_rgba(129,32,54,0.42)]"
+            style={{ backgroundColor: medalTone }}
+          >
+            {medal === "gold" ? <Crown className="size-16 fill-[#b25a00] text-[#b25a00]" /> : <Trophy className="size-16 fill-[#7a2441] text-[#7a2441]" />}
           </div>
-
-          <div className="rounded-[2rem] border border-white/36 bg-[#731d3a]/64 p-4 shadow-[0_20px_58px_rgba(84,15,44,0.3)] backdrop-blur-md">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-sm font-extrabold uppercase tracking-[0.18em] text-[#ffe9a8]">
-                Leaderboard
-              </h2>
-              <Trophy className="size-5 text-[#ffe9a8]" />
+          <p className="mt-6 font-display text-xs font-extrabold uppercase tracking-[0.26em] text-[#ffe9a8]">
+            Current Game
+          </p>
+          <h1 className="mt-2 font-display text-5xl font-extrabold uppercase text-white drop-shadow-[0_7px_0_rgba(100,17,52,0.45)] sm:text-6xl">
+            {medalLabel(medal)}
+          </h1>
+          <div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-white/34 bg-white/18 p-3">
+              <p className="font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/78">
+                Score
+              </p>
+              <p className="font-display text-3xl font-extrabold text-white">{totalScore}</p>
             </div>
-            <div className="grid gap-2">
-              {leaderboard.length ? (
-                leaderboard.slice(0, 7).map((entry, index) => (
-                  <div
-                    key={entry.session_id}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-2xl border border-white/20 bg-white/14 px-3 py-2"
-                  >
-                    <span className="grid size-8 place-items-center rounded-full bg-[#ffe97c] font-display text-xs font-extrabold text-[#7b1e3d]">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-display text-xs font-extrabold uppercase tracking-[0.1em] text-white">
-                        {entry.player_name}
-                      </p>
-                      <p className="font-display text-[0.58rem] font-bold uppercase tracking-[0.1em] text-white/62">
-                        {entry.medal} · {entry.completed_rounds} rounds
-                      </p>
-                    </div>
-                    <p className="font-display text-lg font-extrabold text-[#ffe9a8]">{entry.total_score}</p>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-white/20 bg-white/14 px-4 py-6 text-center font-display text-xs font-extrabold uppercase tracking-[0.14em] text-white/70">
-                  No scores yet
-                </div>
-              )}
+            <div className="rounded-2xl border border-white/34 bg-white/18 p-3">
+              <p className="font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/78">
+                Rounds
+              </p>
+              <p className="font-display text-3xl font-extrabold text-white">{completedRounds}</p>
+            </div>
+            <div className="rounded-2xl border border-white/34 bg-white/18 p-3">
+              <p className="font-display text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-white/78">
+                Combo
+              </p>
+              <p className="font-display text-3xl font-extrabold text-white">x{bestCombo}</p>
             </div>
           </div>
+          <motion.button
+            type="button"
+            onClick={restartGame}
+            className={`${candyButton} mt-6`}
+            whileTap={{ y: 6, scale: 0.98 }}
+          >
+            <RotateCcw className="size-5" />
+            Play Again
+          </motion.button>
         </div>
       </div>
     </motion.section>
@@ -546,7 +508,7 @@ function GamePlayScreen() {
 
 export function EmojiRushGame() {
   const phase = useEmojiRushStore((state) => state.phase);
-  const { leaderboard, startSecureGame } = useEmojiRushBackend();
+  const { startSecureGame } = useEmojiRushBackend();
   useEmojiRushAudio();
 
   return (
@@ -555,7 +517,7 @@ export function EmojiRushGame() {
         {phase === "intro" ? (
           <IntroScreen key="intro" onStart={startSecureGame} />
         ) : phase === "game-over" ? (
-          <MedalScreen key="game-over" leaderboard={leaderboard} />
+          <MedalScreen key="game-over" />
         ) : (
           <GamePlayScreen key="play" />
         )}
