@@ -11,7 +11,7 @@ type GamePageProps = {
 
 export function generateStaticParams() {
   return gameModes
-    .filter((game) => game.slug !== "hand-cricket" && game.slug !== "emoji-rush")
+    .filter((game) => game.slug !== "hand-cricket" && game.slug !== "emoji-rush" && game.slug !== "memory-grid")
     .map((game) => ({ slug: game.slug }));
 }
 
