@@ -22,11 +22,11 @@ logger = logging.getLogger("genquiz.memory_grid")
 
 MAX_HEARTS = 4
 ROUND_CONFIGS: dict[int, dict[str, int]] = {
-    1: {"rows": 3, "cols": 3, "memorize_seconds": 7, "target_count": 3, "find_seconds": 30},
-    2: {"rows": 4, "cols": 4, "memorize_seconds": 7, "target_count": 4, "find_seconds": 30},
-    3: {"rows": 4, "cols": 5, "memorize_seconds": 6, "target_count": 5, "find_seconds": 30},
-    4: {"rows": 5, "cols": 5, "memorize_seconds": 6, "target_count": 5, "find_seconds": 30},
-    5: {"rows": 6, "cols": 5, "memorize_seconds": 5, "target_count": 6, "find_seconds": 30},
+    1: {"rows": 3, "cols": 3, "memorize_seconds": 10, "target_count": 3, "find_seconds": 30},
+    2: {"rows": 4, "cols": 4, "memorize_seconds": 10, "target_count": 3, "find_seconds": 30},
+    3: {"rows": 4, "cols": 5, "memorize_seconds": 10, "target_count": 3, "find_seconds": 30},
+    4: {"rows": 5, "cols": 5, "memorize_seconds": 10, "target_count": 4, "find_seconds": 30},
+    5: {"rows": 6, "cols": 5, "memorize_seconds": 10, "target_count": 4, "find_seconds": 30},
 }
 
 

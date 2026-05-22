@@ -28,11 +28,11 @@ export type MemoryCardAsset = {
 };
 
 export const MEMORY_GRID_ROUNDS: MemoryGridRoundConfig[] = [
-  { round: 1, title: "Focus Bloom", rows: 3, cols: 3, memorizeSeconds: 7, targetCount: 3, findSeconds: 30 },
-  { round: 2, title: "Pattern Rise", rows: 4, cols: 4, memorizeSeconds: 7, targetCount: 4, findSeconds: 30 },
-  { round: 3, title: "Recall Drift", rows: 4, cols: 5, memorizeSeconds: 6, targetCount: 5, findSeconds: 30 },
-  { round: 4, title: "Deep Focus", rows: 5, cols: 5, memorizeSeconds: 6, targetCount: 5, findSeconds: 30 },
-  { round: 5, title: "Memory Crown", rows: 6, cols: 5, memorizeSeconds: 5, targetCount: 6, findSeconds: 30 }
+  { round: 1, title: "Focus Bloom", rows: 3, cols: 3, memorizeSeconds: 10, targetCount: 3, findSeconds: 30 },
+  { round: 2, title: "Pattern Rise", rows: 4, cols: 4, memorizeSeconds: 10, targetCount: 3, findSeconds: 30 },
+  { round: 3, title: "Recall Drift", rows: 4, cols: 5, memorizeSeconds: 10, targetCount: 3, findSeconds: 30 },
+  { round: 4, title: "Deep Focus", rows: 5, cols: 5, memorizeSeconds: 10, targetCount: 4, findSeconds: 30 },
+  { round: 5, title: "Memory Crown", rows: 6, cols: 5, memorizeSeconds: 10, targetCount: 4, findSeconds: 30 }
 ];
 
 export const MAX_MEMORY_GRID_HEARTS = 4;

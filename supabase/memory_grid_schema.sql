@@ -63,7 +63,7 @@ create table public.memory_grid_rounds (
   constraint memory_grid_rounds_duration_check check (duration_ms >= 0 and duration_ms <= 600000),
   constraint memory_grid_rounds_rows_check check (grid_rows >= 3 and grid_rows <= 6),
   constraint memory_grid_rounds_cols_check check (grid_cols >= 3 and grid_cols <= 6),
-  constraint memory_grid_rounds_memorize_check check (memorize_seconds >= 5 and memorize_seconds <= 7),
+  constraint memory_grid_rounds_memorize_check check (memorize_seconds >= 5 and memorize_seconds <= 10),
   constraint memory_grid_rounds_target_check check (target_count >= 3 and target_count <= 6)
 );
 

@@ -50,7 +50,7 @@ class MemoryGridRoundProgressRequest(BaseModel):
     completed: bool
     grid_rows: int = Field(..., ge=3, le=6)
     grid_cols: int = Field(..., ge=3, le=6)
-    memorize_seconds: int = Field(..., ge=5, le=7)
+    memorize_seconds: int = Field(..., ge=5, le=10)
     target_count: int = Field(..., ge=3, le=6)
 
 
