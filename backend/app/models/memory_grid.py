@@ -48,8 +48,8 @@ class MemoryGridRoundProgressRequest(BaseModel):
     remaining_hearts: int = Field(..., ge=0, le=4)
     duration_ms: int = Field(..., ge=0, le=600_000)
     completed: bool
-    grid_rows: int = Field(..., ge=3, le=6)
-    grid_cols: int = Field(..., ge=3, le=6)
+    grid_rows: int = Field(..., ge=2, le=6)
+    grid_cols: int = Field(..., ge=2, le=6)
     memorize_seconds: int = Field(..., ge=5, le=10)
     target_count: int = Field(..., ge=3, le=6)
 
