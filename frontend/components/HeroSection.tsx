@@ -318,7 +318,7 @@ export function HeroSection() {
 
       setMultiplayerEnabled(false);
       setRoomCode(null);
-      goToScreen("review");
+      goToScreen("game");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "The AI engine could not generate a quiz from this file.");
       goToScreen("fileQuiz");

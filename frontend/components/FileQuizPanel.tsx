@@ -39,6 +39,82 @@ type FileQuizPanelProps = {
   onBack: () => void;
 };
 
+function FileGenerationOverlay() {
+  const steps = ["Scanning source", "Building MCQs", "Validating answers"];
+
+  return (
+    <motion.div
+      className="absolute inset-0 z-30 grid place-items-center rounded-[1.5rem] border border-cyan-100/16 bg-slate-950/88 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+      initial={{ opacity: 0, scale: 0.985 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.985 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.5rem]">
+        <motion.span
+          className="absolute inset-x-8 top-8 h-px bg-gradient-to-r from-transparent via-cyan-100/80 to-transparent"
+          animate={{ y: [0, 260, 0], opacity: [0.16, 0.82, 0.16] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(103,232,249,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(240,171,252,0.06)_1px,transparent_1px)] bg-[size:28px_28px] opacity-45" />
+      </div>
+
+      <div className="relative w-full max-w-md text-center">
+        <div className="relative mx-auto grid size-28 place-items-center">
+          <motion.span
+            className="absolute inset-0 rounded-full border border-cyan-100/22"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.span
+            className="absolute inset-4 rounded-full border border-fuchsia-100/18"
+            animate={{ rotate: -360 }}
+            transition={{ duration: 7.5, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.span
+            className="grid size-16 place-items-center rounded-2xl border border-cyan-100/24 bg-cyan-100/10 text-cyan-100 shadow-[0_0_34px_rgba(34,211,238,0.2)]"
+            animate={{ y: [0, -5, 0], scale: [1, 1.04, 1] }}
+            transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <FileText className="size-7" />
+          </motion.span>
+        </div>
+
+        <p className="mt-5 font-display text-xs font-extrabold uppercase tracking-[0.24em] text-cyan-100/72">
+          File AI Engine
+        </p>
+        <h3 className="mt-2 font-display text-2xl font-extrabold text-white sm:text-3xl">
+          Generating Quiz
+        </h3>
+        <p className="mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 text-white/54">
+          Extracted content is being converted into validated questions.
+        </p>
+
+        <div className="mt-6 grid gap-2">
+          {steps.map((step, index) => (
+            <div
+              key={step}
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-left"
+            >
+              <motion.span
+                className="grid size-7 place-items-center rounded-lg border border-cyan-100/18 bg-cyan-100/8 text-cyan-100"
+                animate={{ opacity: [0.42, 1, 0.42], scale: [1, 1.08, 1] }}
+                transition={{ duration: 1.2, delay: index * 0.18, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {index + 1}
+              </motion.span>
+              <span className="flex-1 font-display text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-white/62">
+                {step}
+              </span>
+              <Loader2 className="size-4 animate-spin text-cyan-100/70" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }: FileQuizPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"solo" | "multiplayer">("solo");
@@ -103,6 +179,7 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
       <div className="relative w-full max-w-6xl">
         <FloatingGlow className="-left-12 top-10 size-44 bg-cyan-300/14" />
         <FloatingGlow className="-right-16 bottom-24 size-52 bg-fuchsia-300/12" />
+        <AnimatePresence>{generating ? <FileGenerationOverlay /> : null}</AnimatePresence>
 
         <button
           type="button"

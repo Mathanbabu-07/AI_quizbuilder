@@ -131,7 +131,7 @@ function CreateQuizPanelComponent({
           <motion.button
             type="button"
             onClick={onOpenFileQuiz}
-            className="group absolute left-0 top-0 z-20 grid size-12 place-items-center rounded-2xl border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-14"
+            className="group absolute left-0 top-0 z-20 flex size-14 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-16"
             whileHover={{ y: -2, scale: 1.04 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Generate quiz from PDF or PPTX"
@@ -143,6 +143,9 @@ function CreateQuizPanelComponent({
               transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
             />
             <FileUp className="relative size-5 sm:size-6" />
+            <span className="relative font-display text-[0.55rem] font-extrabold uppercase leading-none tracking-[0.12em] text-cyan-50/78">
+              PDF
+            </span>
           </motion.button>
         ) : null}
 
