@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, Gamepad2, Hash, Hourglass, MessageSquareText, Mic, Timer, UserRound, UsersRound, Waves } from "lucide-react";
+import { Brain, FileUp, Gamepad2, Hash, MessageSquareText, Mic, Timer, Trophy, UserRound, UsersRound, Waves } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { AnimatedInput } from "@/components/AnimatedInput";
@@ -27,19 +27,21 @@ type CreateQuizPanelProps = {
   multiplayerEnabled: boolean;
   onMultiplayerChange: (enabled: boolean) => void;
   onGenerate: (settings: QuizSettings) => void;
+  onOpenFileQuiz?: () => void;
 };
 
 function CreateQuizPanelComponent({
   errorMessage,
   multiplayerEnabled,
   onMultiplayerChange,
-  onGenerate
+  onGenerate,
+  onOpenFileQuiz
 }: CreateQuizPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [questions, setQuestions] = useState("10");
   const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
   const [timePerQuestion, setTimePerQuestion] = useState("30");
-  const [totalTime, setTotalTime] = useState("10");
+  const [pointsPerQuestion, setPointsPerQuestion] = useState("1");
   const promptBaseRef = useRef("");
   const {
     supported,
@@ -62,12 +64,16 @@ function CreateQuizPanelComponent({
   }, [finalTranscript, interimTranscript, isListening]);
 
   const handleSubmit = () => {
+    const questionCount = Number(questions);
+    const secondsPerQuestion = Number(timePerQuestion);
+
     onGenerate({
       prompt: prompt.trim(),
-      questionCount: Number(questions),
+      questionCount,
       difficulty,
-      timePerQuestion: Number(timePerQuestion),
-      totalQuizTime: Number(totalTime)
+      timePerQuestion: secondsPerQuestion,
+      totalQuizTime: Math.max(1, Math.ceil((questionCount * secondsPerQuestion) / 60)),
+      pointsPerQuestion: Number(pointsPerQuestion)
     });
   };
 
@@ -121,6 +127,24 @@ function CreateQuizPanelComponent({
       >
         <FloatingGlow className="-left-12 top-10 size-44 bg-cyan-300/14" />
         <FloatingGlow className="-right-16 bottom-24 size-52 bg-fuchsia-300/12" />
+        {onOpenFileQuiz ? (
+          <motion.button
+            type="button"
+            onClick={onOpenFileQuiz}
+            className="group absolute left-0 top-0 z-20 grid size-12 place-items-center rounded-2xl border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-14"
+            whileHover={{ y: -2, scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Generate quiz from PDF or PPTX"
+          >
+            <span className="absolute inset-0 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(103,232,249,0.3),transparent_64%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <motion.span
+              className="absolute inset-1 rounded-[0.85rem] border border-cyan-100/10"
+              animate={{ opacity: [0.25, 0.85, 0.25], scale: [1, 1.05, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <FileUp className="relative size-5 sm:size-6" />
+          </motion.button>
+        ) : null}
 
         <motion.div
           className="mb-8 text-center"
@@ -277,14 +301,14 @@ function CreateQuizPanelComponent({
               suffix="sec"
             />
             <AnimatedInput
-              label="Total Quiz Time"
-              value={totalTime}
-              onChange={setTotalTime}
-              icon={<Hourglass className="size-4" strokeWidth={2.2} />}
+              label="Points Per Question"
+              value={pointsPerQuestion}
+              onChange={setPointsPerQuestion}
+              icon={<Trophy className="size-4" strokeWidth={2.2} />}
               type="number"
               min={1}
-              max={120}
-              suffix="min"
+              max={10}
+              suffix="pts"
             />
           </div>
         </motion.div>

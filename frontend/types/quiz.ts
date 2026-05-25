@@ -5,6 +5,8 @@ export type QuizQuestion = {
   choices: string[];
   correct_answer: string;
   difficulty: Difficulty;
+  time_limit?: number;
+  points?: number;
 };
 
 export type GeneratedQuiz = {
@@ -18,6 +20,8 @@ export type QuizSettings = {
   difficulty: Difficulty;
   timePerQuestion: number;
   totalQuizTime: number;
+  pointsPerQuestion?: number;
+  source?: "text" | "file" | "manual";
 };
 
 export type QuizAnswer = {

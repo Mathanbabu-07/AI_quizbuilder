@@ -7,6 +7,7 @@ import { heroContainer, heroItem } from "@/animations/motionPresets";
 import { AboutGQSection } from "@/components/AboutGQSection";
 import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { CreateQuizPanel } from "@/components/CreateQuizPanel";
+import { FileQuizPanel, type FileQuizSettings } from "@/components/FileQuizPanel";
 import { FloatingTitle } from "@/components/FloatingTitle";
 import { JoinQuizModal } from "@/components/JoinQuizModal";
 import { ManualQuizBuilder } from "@/components/ManualQuizBuilder";
@@ -24,7 +25,7 @@ import { useDeviceHostId } from "@/hooks/useDeviceHostId";
 import { useHostRoom } from "@/hooks/useHostRoom";
 import { useParticipantRoom } from "@/hooks/useParticipantRoom";
 import { deleteManualQuiz, getManualQuiz, listManualQuizzes, saveManualQuiz } from "@/lib/manualQuizApi";
-import { generateQuiz } from "@/lib/quizApi";
+import { generateQuiz, generateQuizFromFile } from "@/lib/quizApi";
 import {
   manualQuizToGeneratedQuiz,
   manualQuizToSettings,
@@ -42,6 +43,7 @@ type Screen =
   | "manualMcq"
   | "moreGames"
   | "create"
+  | "fileQuiz"
   | "loading"
   | "review"
   | "game"
@@ -57,6 +59,7 @@ const routableScreens: Screen[] = [
   "manualMcq",
   "moreGames",
   "create",
+  "fileQuiz",
   "loading",
   "review",
   "game",
@@ -66,7 +69,7 @@ const routableScreens: Screen[] = [
 ];
 
 function modeForScreen(nextScreen: Screen): CreationMode {
-  if (nextScreen === "create" || nextScreen === "loading") {
+  if (nextScreen === "create" || nextScreen === "fileQuiz" || nextScreen === "loading") {
     return "ai";
   }
 
@@ -106,6 +109,7 @@ export function HeroSection() {
   const [savedQuizzes, setSavedQuizzes] = useState<SavedManualQuizSummary[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
+  const [fileGenerating, setFileGenerating] = useState(false);
   const hostId = useDeviceHostId();
   const hostRoom = useHostRoom(multiplayerEnabled, roomCode, quiz, settings);
   const participantRoom = useParticipantRoom();
@@ -174,6 +178,7 @@ export function HeroSection() {
     setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
+    setFileGenerating(false);
     setErrorMessage(null);
     goToScreen("create");
   };
@@ -188,6 +193,7 @@ export function HeroSection() {
     setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
+    setFileGenerating(false);
     setErrorMessage(null);
     goToScreen("questionTypes");
   };
@@ -201,6 +207,7 @@ export function HeroSection() {
     setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
+    setFileGenerating(false);
     setErrorMessage(null);
     goToScreen("moreGames");
   };
@@ -261,6 +268,65 @@ export function HeroSection() {
     }
   };
 
+  const openFileQuizFlow = () => {
+    setErrorMessage(null);
+    setCreationMode("ai");
+    setQuiz(null);
+    setSettings(null);
+    setResult(null);
+    setManualDraft(null);
+    setOpenedSavedQuizId(null);
+    setRoomCode(null);
+    setMultiplayerEnabled(false);
+    goToScreen("fileQuiz");
+  };
+
+  const handleGenerateFromFile = async (fileSettings: FileQuizSettings) => {
+    setErrorMessage(null);
+    setFileGenerating(true);
+    const nextSettings: QuizSettings = {
+      prompt: `File quiz: ${fileSettings.filename}`,
+      questionCount: fileSettings.questionCount,
+      difficulty: fileSettings.difficulty,
+      timePerQuestion: fileSettings.timePerQuestion,
+      totalQuizTime: Math.max(1, Math.ceil((fileSettings.questionCount * fileSettings.timePerQuestion) / 60)),
+      pointsPerQuestion: fileSettings.pointsPerQuestion,
+      source: "file"
+    };
+
+    try {
+      const response = await generateQuizFromFile({
+        uploadedFileId: fileSettings.uploadedFileId,
+        mode: fileSettings.mode,
+        questionCount: fileSettings.questionCount,
+        difficulty: fileSettings.difficulty,
+        timePerQuestion: fileSettings.timePerQuestion,
+        pointsPerQuestion: fileSettings.pointsPerQuestion,
+        hostId,
+        hostName: "Host"
+      });
+      setQuiz(response.quiz);
+      setSettings(nextSettings);
+      setCreationMode("ai");
+
+      if (fileSettings.mode === "multiplayer") {
+        setMultiplayerEnabled(true);
+        setRoomCode(response.roomCode ?? generateRoomCode());
+        goToScreen("review");
+        return;
+      }
+
+      setMultiplayerEnabled(false);
+      setRoomCode(null);
+      goToScreen("review");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "The AI engine could not generate a quiz from this file.");
+      goToScreen("fileQuiz");
+    } finally {
+      setFileGenerating(false);
+    }
+  };
+
   const resetFlow = () => {
     setQuiz(null);
     setSettings(null);
@@ -270,6 +336,7 @@ export function HeroSection() {
     setRoomCode(null);
     setManualDraft(null);
     setOpenedSavedQuizId(null);
+    setFileGenerating(false);
     participantRoom.leaveRoom();
     if (creationMode === "ai") {
       goToScreen("create");
@@ -569,6 +636,15 @@ export function HeroSection() {
             multiplayerEnabled={multiplayerEnabled}
             onMultiplayerChange={setMultiplayerEnabled}
             onGenerate={handleGenerate}
+            onOpenFileQuiz={openFileQuizFlow}
+          />
+        ) : screen === "fileQuiz" ? (
+          <FileQuizPanel
+            key="fileQuiz"
+            errorMessage={errorMessage}
+            generating={fileGenerating}
+            onGenerate={handleGenerateFromFile}
+            onBack={() => goToScreen("create")}
           />
         ) : screen === "loading" ? (
           <QuizLoadingScreen key="loading" />

@@ -39,6 +39,32 @@ type GenerateQuizApiResponse = {
   quiz: GeneratedQuiz;
 };
 
+export type UploadedQuizFile = {
+  file_id: string;
+  filename: string;
+  file_type: "pdf" | "pptx";
+  extracted_characters: number;
+  preview: string;
+};
+
+export type GenerateFromFileOptions = {
+  uploadedFileId: string;
+  mode: "solo" | "multiplayer";
+  questionCount: number;
+  difficulty: QuizSettings["difficulty"];
+  timePerQuestion: number;
+  pointsPerQuestion: number;
+  hostId?: string | null;
+  hostName?: string;
+};
+
+type GenerateFromFileApiResponse = {
+  quiz: GeneratedQuiz;
+  meta: {
+    room_code?: string | null;
+  };
+};
+
 type ApiErrorPayload = {
   detail?: unknown;
 };
@@ -84,7 +110,8 @@ async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attem
         question_count: settings.questionCount,
         difficulty: settings.difficulty,
         time_per_question: settings.timePerQuestion,
-        total_quiz_time: settings.totalQuizTime
+        total_quiz_time: settings.totalQuizTime,
+        points_per_question: settings.pointsPerQuestion ?? 1
       }),
       signal: controller.signal
     });
@@ -143,4 +170,81 @@ export async function generateQuiz(settings: QuizSettings): Promise<GeneratedQui
 
   const payload = (await response.json()) as GenerateQuizApiResponse;
   return payload.quiz;
+}
+
+export async function uploadQuizFile(file: File): Promise<UploadedQuizFile> {
+  const apiBaseUrl = getApiBaseUrl();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${apiBaseUrl}/api/quiz/upload`, {
+    method: "POST",
+    mode: "cors",
+    cache: "no-store",
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "File upload failed. Try a smaller PDF or PPTX."));
+  }
+
+  return (await response.json()) as UploadedQuizFile;
+}
+
+export async function generateQuizFromFile(options: GenerateFromFileOptions): Promise<{
+  quiz: GeneratedQuiz;
+  roomCode: string | null;
+}> {
+  const apiBaseUrl = getApiBaseUrl();
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/quiz/generate-from-file`, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        file_id: options.uploadedFileId,
+        mode: options.mode,
+        question_count: options.questionCount,
+        difficulty: options.difficulty,
+        time_per_question: options.timePerQuestion,
+        points_per_question: options.pointsPerQuestion,
+        host_id: options.hostId,
+        host_name: options.hostName ?? "Host"
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(await readApiError(response, "File quiz generation failed. Please try again."));
+    }
+
+    const payload = (await response.json()) as GenerateFromFileApiResponse;
+    return {
+      quiz: payload.quiz,
+      roomCode: payload.meta.room_code ?? null
+    };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("File quiz generation is taking longer than expected. Try fewer questions or a smaller file.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+async function readApiError(response: Response, fallback: string) {
+  try {
+    const payload = (await response.json()) as ApiErrorPayload;
+    return normalizeApiError(payload) ?? fallback;
+  } catch {
+    return `${fallback} Status ${response.status}.`;
+  }
 }

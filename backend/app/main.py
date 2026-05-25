@@ -10,6 +10,7 @@ from app.api.emoji_rush import router as emoji_rush_router
 from app.api.hand_cricket import router as hand_cricket_router
 from app.api.manual_quizzes import router as manual_quizzes_router
 from app.api.memory_grid import router as memory_grid_router
+from app.api.multiplayer import router as multiplayer_router
 from app.api.quiz import router as quiz_router
 from app.core.config import get_settings
 from app.services.supabase_client import get_supabase_diagnostics
@@ -51,6 +52,7 @@ fastapi_app.include_router(manual_quizzes_router)
 fastapi_app.include_router(hand_cricket_router)
 fastapi_app.include_router(emoji_rush_router)
 fastapi_app.include_router(memory_grid_router)
+fastapi_app.include_router(multiplayer_router)
 
 
 @fastapi_app.middleware("http")
@@ -82,6 +84,11 @@ async def health(request: Request):
         "emoji_rush_storage": "supabase_rest_http1",
         "memory_grid_storage": "supabase_rest_http1",
     }
+
+
+@fastapi_app.api_route("/api/health", methods=["GET", "HEAD"], tags=["system"])
+async def api_health(request: Request):
+    return await health(request)
 
 
 socket_app = socketio.ASGIApp(

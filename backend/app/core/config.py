@@ -11,7 +11,9 @@ load_dotenv(BASE_DIR / ".env")
 
 class Settings(BaseModel):
     openrouter_api_key: str = ""
-    openrouter_model: str = "openai/gpt-oss-120b:free"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "qwen/qwen3-next-80b-a3b-instruct:free"
+    openrouter_file_model: str = "nvidia/nemotron-3-nano-30b-a3b:free"
     frontend_url: str = ""
     frontend_urls: list[str] = []
     cors_allow_origin_regex: str = (
@@ -20,6 +22,7 @@ class Settings(BaseModel):
         r"^http://127\.0\.0\.1(:[0-9]+)?$"
     )
     generation_timeout_seconds: float = 120.0
+    max_upload_mb: int = 10
     supabase_url: str = ""
     supabase_service_role_key: str = ""
     app_name: str = "GENQUIZ API"
@@ -51,6 +54,11 @@ def _secret_env(name: str) -> str:
     return "".join(value.split())
 
 
+def _text_env(name: str, default: str) -> str:
+    value = os.getenv(name, "").strip()
+    return value or default
+
+
 def _unique_urls(values: list[str]) -> list[str]:
     seen: set[str] = set()
     urls: list[str] = []
@@ -71,7 +79,12 @@ def get_settings() -> Settings:
 
     return Settings(
         openrouter_api_key=_secret_env("OPENROUTER_API_KEY"),
-        openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b:free"),
+        openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/"),
+        openrouter_model=_text_env("OPENROUTER_MODEL", "qwen/qwen3-next-80b-a3b-instruct:free"),
+        openrouter_file_model=_text_env(
+            "OPENROUTER_FILE_MODEL",
+            "nvidia/nemotron-3-nano-30b-a3b:free",
+        ),
         frontend_url=frontend_url,
         frontend_urls=frontend_urls,
         cors_allow_origin_regex=os.getenv(
@@ -79,6 +92,7 @@ def get_settings() -> Settings:
             Settings.model_fields["cors_allow_origin_regex"].default,
         ),
         generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
+        max_upload_mb=max(1, int(_float_env("MAX_UPLOAD_MB", 10))),
         supabase_url=_secret_env("SUPABASE_URL").rstrip("/"),
         supabase_service_role_key=_secret_env("SUPABASE_SERVICE_ROLE_KEY"),
     )

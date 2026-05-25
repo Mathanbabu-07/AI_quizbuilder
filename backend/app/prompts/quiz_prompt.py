@@ -21,6 +21,8 @@ Rules:
 - Difficulty must be exactly "{request.difficulty}" for every question.
 - Each question must have exactly 4 unique choices.
 - The correct_answer must exactly match one of the 4 choices.
+- timeLimit must be {request.time_per_question}.
+- points must be {request.points_per_question}.
 - Avoid duplicates and trivial wording.
 - Keep questions concise, meaningful, and factually grounded.
 - Keep choices plausible and balanced.
@@ -38,7 +40,9 @@ Return this exact JSON shape:
       "question": "Question text",
       "choices": ["Choice A", "Choice B", "Choice C", "Choice D"],
       "correct_answer": "Choice A",
-      "difficulty": "{request.difficulty}"
+      "difficulty": "{request.difficulty}",
+      "timeLimit": {request.time_per_question},
+      "points": {request.points_per_question}
     }}
   ]
 }}

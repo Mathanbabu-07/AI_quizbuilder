@@ -13,7 +13,6 @@ from app.models.quiz import GenerateQuizRequest, GeneratedQuiz
 from app.prompts.quiz_prompt import build_quiz_prompt
 from app.utils.json_tools import extract_json_object
 
-OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 logger = logging.getLogger("genquiz.openrouter")
 
 
@@ -58,7 +57,11 @@ class OpenRouterService:
                 timeout = httpx.Timeout(request_timeout, connect=min(5.0, request_timeout))
 
                 async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.post(OPENROUTER_CHAT_URL, json=payload, headers=headers)
+                    response = await client.post(
+                        f"{self.settings.openrouter_base_url}/chat/completions",
+                        json=payload,
+                        headers=headers,
+                    )
                 response.raise_for_status()
                 return self._parse_response(response.json(), request)
             except httpx.TimeoutException as exc:
@@ -102,6 +105,10 @@ class OpenRouterService:
         ]
         if invalid_difficulty:
             raise ValueError("AI response did not maintain the requested difficulty.")
+
+        for question in quiz.questions:
+            question.time_limit = request.time_per_question
+            question.points = request.points_per_question
 
         return quiz
 
