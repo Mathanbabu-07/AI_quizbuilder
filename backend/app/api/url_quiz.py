@@ -83,6 +83,7 @@ async def generate_quiz_from_url(
         generator_request,
         cached.text,
         model=settings.openrouter_url_model,
+        source_label="URL",
     )
     quiz_id = supabase_service.save_generated_quiz(
         title=quiz.title,

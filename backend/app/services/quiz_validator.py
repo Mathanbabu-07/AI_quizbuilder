@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from pydantic import ValidationError
@@ -17,6 +18,13 @@ def validate_quiz_payload(
     time_per_question: int,
     points_per_question: int,
 ) -> GeneratedQuiz:
+    payload = _normalize_quiz_payload(
+        payload,
+        question_count=question_count,
+        difficulty=difficulty,
+        time_per_question=time_per_question,
+        points_per_question=points_per_question,
+    )
     try:
         quiz = GeneratedQuiz.model_validate(payload)
     except ValidationError as exc:
@@ -39,3 +47,131 @@ def validate_quiz_payload(
         question.points = points_per_question
 
     return quiz
+
+
+def _normalize_quiz_payload(
+    payload: dict[str, Any],
+    *,
+    question_count: int,
+    difficulty: Difficulty,
+    time_per_question: int,
+    points_per_question: int,
+) -> dict[str, Any]:
+    if "quiz" in payload and isinstance(payload["quiz"], dict):
+        payload = payload["quiz"]
+
+    title = _clean_text(payload.get("title")) or "GENQUIZ URL Quiz"
+    raw_questions = payload.get("questions") or payload.get("mcqs") or payload.get("items") or []
+    if not isinstance(raw_questions, list):
+        raise QuizValidationError("AI response questions must be a list.")
+
+    normalized_questions: list[dict[str, Any]] = []
+    for item in raw_questions:
+        if not isinstance(item, dict):
+            continue
+
+        question_text = _clean_text(
+            item.get("question")
+            or item.get("question_text")
+            or item.get("prompt")
+            or item.get("text")
+        )
+        options = _normalize_options(item.get("options") or item.get("choices") or item.get("answers"))
+        answer = _clean_text(
+            item.get("correctAnswer")
+            or item.get("correct_answer")
+            or item.get("answer")
+            or item.get("correct")
+            or item.get("correctOption")
+        )
+
+        if not question_text or len(options) < 4 or not answer:
+            continue
+
+        answer = _resolve_answer(answer, options)
+        if answer not in options:
+            options = _trim_options_keeping_answer(options, answer)
+        else:
+            options = _trim_options_keeping_answer(options, answer)
+
+        if len(options) != 4 or answer not in options:
+            continue
+
+        normalized_questions.append(
+            {
+                "question": question_text,
+                "options": options,
+                "correctAnswer": answer,
+                "difficulty": difficulty,
+                "timeLimit": time_per_question,
+                "points": points_per_question,
+            }
+        )
+
+        if len(normalized_questions) == question_count:
+            break
+
+    return {"title": title[:120], "questions": normalized_questions}
+
+
+def _normalize_options(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        ordered_keys = ["A", "B", "C", "D", "a", "b", "c", "d", "1", "2", "3", "4"]
+        items = [value[key] for key in ordered_keys if key in value]
+        if not items:
+            items = list(value.values())
+        value = items
+
+    if not isinstance(value, list):
+        return []
+
+    options: list[str] = []
+    seen: set[str] = set()
+    for option in value:
+        cleaned = _clean_text(option)
+        if not cleaned:
+            continue
+        cleaned = _strip_option_label(cleaned)
+        key = cleaned.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        options.append(cleaned[:240])
+    return options
+
+
+def _resolve_answer(answer: str, options: list[str]) -> str:
+    clean_answer = _strip_option_label(answer)
+    letter_map = {"a": 0, "b": 1, "c": 2, "d": 3}
+    lowered = clean_answer.casefold().strip(".:)")
+    if lowered in letter_map and letter_map[lowered] < len(options):
+        return options[letter_map[lowered]]
+    if lowered.isdigit():
+        index = int(lowered) - 1
+        if 0 <= index < len(options):
+            return options[index]
+
+    for option in options:
+        if option.casefold() == clean_answer.casefold():
+            return option
+    for option in options:
+        if option.casefold().startswith(clean_answer.casefold()) or clean_answer.casefold().startswith(option.casefold()):
+            return option
+    return clean_answer[:240]
+
+
+def _trim_options_keeping_answer(options: list[str], answer: str) -> list[str]:
+    if answer in options:
+        selected = [answer, *[option for option in options if option != answer]]
+        return selected[:4]
+    return options[:3] + [answer]
+
+
+def _strip_option_label(value: str) -> str:
+    return re.sub(r"^[A-Da-d1-4][\).\:\-]\s*", "", value).strip()
+
+
+def _clean_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return " ".join(str(value).strip().split())

@@ -26,6 +26,7 @@ class AIQuizGenerator:
         source_text: str,
         *,
         model: str | None = None,
+        source_label: str = "file",
     ) -> GeneratedQuiz:
         if not self.settings.openrouter_api_key:
             raise HTTPException(
@@ -39,7 +40,8 @@ class AIQuizGenerator:
             "messages": build_file_quiz_prompt(request, compact_source),
             "temperature": 0.18,
             "top_p": 0.82,
-            "max_tokens": min(7600, 540 + request.question_count * 135),
+            "max_tokens": min(7600, max(1800, 700 + request.question_count * 220)),
+            "response_format": {"type": "json_object"},
         }
         headers = {
             "Authorization": f"Bearer {self.settings.openrouter_api_key}",
@@ -67,12 +69,27 @@ class AIQuizGenerator:
                 last_error = exc
             except httpx.HTTPStatusError as exc:
                 detail = _openrouter_error_message(exc.response)
+                if exc.response.status_code == 400 and "response_format" in detail.casefold() and "response_format" in payload:
+                    logger.info("OpenRouter model rejected response_format; retrying without strict JSON mode.")
+                    payload.pop("response_format", None)
+                    last_error = exc
+                    continue
                 if exc.response.status_code in {400, 401, 402, 403, 404}:
                     raise HTTPException(status_code=exc.response.status_code, detail=detail) from exc
                 last_error = exc
             except (KeyError, ValueError, QuizValidationError) as exc:
                 logger.warning("File quiz generation produced invalid output on attempt %s: %s", attempt + 1, exc)
                 last_error = exc
+                payload["messages"] = [
+                    *build_file_quiz_prompt(request, compact_source),
+                    {
+                        "role": "user",
+                        "content": (
+                            "Repair the output. Return only valid JSON with exactly the requested schema, "
+                            "exactly 4 string options per question, and correctAnswer equal to one option."
+                        ),
+                    },
+                ]
 
             if attempt == 0:
                 await asyncio.sleep(0.45)
@@ -80,12 +97,12 @@ class AIQuizGenerator:
         if isinstance(last_error, httpx.TimeoutException):
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="File quiz generation took too long. Try fewer questions or a smaller file.",
+                detail=f"{source_label.title()} quiz generation took too long. Try fewer questions or a smaller source.",
             ) from last_error
 
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="AI returned an invalid quiz format. Try fewer questions or a cleaner file.",
+            detail=f"AI returned an invalid quiz format. Try fewer questions or a cleaner {source_label}.",
         ) from last_error
 
     def _parse_response(self, data: dict[str, Any], request: GenerateFromFileRequest) -> GeneratedQuiz:

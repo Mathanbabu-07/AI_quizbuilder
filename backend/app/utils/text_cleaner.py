@@ -34,10 +34,12 @@ _BLOCK_TAGS = {
     "tr",
     "ul",
 }
-_IGNORED_TAGS = {"script", "style", "svg", "canvas", "noscript", "iframe", "form"}
+_IGNORED_TAGS = {"script", "style", "svg", "canvas", "noscript", "iframe", "form", "nav", "footer", "header", "aside"}
 _JUNK_PATTERNS = re.compile(
     r"\b(cookie|privacy policy|subscribe|newsletter|advertisement|sign in|share this|"
-    r"all rights reserved|terms of use)\b",
+    r"all rights reserved|terms of use|jump to content|main menu|move to sidebar|"
+    r"hide navigation|contribute help|learn to edit|community portal|recent changes|"
+    r"upload file|random article)\b",
     re.IGNORECASE,
 )
 
