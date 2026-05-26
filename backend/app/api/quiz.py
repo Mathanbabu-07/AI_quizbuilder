@@ -74,7 +74,7 @@ async def upload_quiz_file(
     settings: Settings = Depends(get_settings),
 ) -> FileUploadResponse:
     filename = file.filename or "uploaded-file"
-    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    extension = _detect_file_type(filename, file.content_type)
     if extension not in {"pdf", "pptx"}:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -96,10 +96,10 @@ async def upload_quiz_file(
     else:
         extracted_text = await PPTExtractor().extract_text(payload)
 
-    if len(extracted_text) < 180:
+    if len(extracted_text) < 80:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Not enough readable text was found in this file.",
+            detail="Not enough readable text was found in this file. If it is a scanned image PDF, export it with selectable text and upload again.",
         )
 
     _prune_cache()
@@ -192,3 +192,17 @@ def _prune_cache() -> None:
     expired_keys = [key for key, value in _extraction_cache.items() if value.created_at < expires_before]
     for key in expired_keys:
         _extraction_cache.pop(key, None)
+
+
+def _detect_file_type(filename: str, content_type: str | None) -> str:
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if extension in {"pdf", "pptx"}:
+        return extension
+
+    normalized_type = (content_type or "").lower()
+    if normalized_type == "application/pdf":
+        return "pdf"
+    if normalized_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        return "pptx"
+
+    return extension

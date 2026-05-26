@@ -302,6 +302,7 @@ export function HeroSection() {
         difficulty: fileSettings.difficulty,
         timePerQuestion: fileSettings.timePerQuestion,
         pointsPerQuestion: fileSettings.pointsPerQuestion,
+        userPrompt: fileSettings.userPrompt,
         hostId,
         hostName: "Host"
       });

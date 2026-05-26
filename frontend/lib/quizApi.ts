@@ -1,6 +1,7 @@
 import type { GeneratedQuiz, QuizSettings } from "@/types/quiz";
 
 const GENERATION_CLIENT_TIMEOUT_MS = 125_000;
+const FILE_UPLOAD_CLIENT_TIMEOUT_MS = 70_000;
 const PRODUCTION_API_FALLBACK = "https://genquiz-backend-exz2.onrender.com";
 const NETWORK_RETRY_DELAY_MS = 850;
 
@@ -54,6 +55,7 @@ export type GenerateFromFileOptions = {
   difficulty: QuizSettings["difficulty"];
   timePerQuestion: number;
   pointsPerQuestion: number;
+  userPrompt?: string;
   hostId?: string | null;
   hostName?: string;
 };
@@ -174,21 +176,52 @@ export async function generateQuiz(settings: QuizSettings): Promise<GeneratedQui
 
 export async function uploadQuizFile(file: File): Promise<UploadedQuizFile> {
   const apiBaseUrl = getApiBaseUrl();
-  const formData = new FormData();
-  formData.append("file", file);
 
-  const response = await fetch(`${apiBaseUrl}/api/quiz/upload`, {
-    method: "POST",
-    mode: "cors",
-    cache: "no-store",
-    body: formData
-  });
+  let response: Response;
+
+  try {
+    response = await uploadQuizFileRequest(apiBaseUrl, file);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("File extraction is taking longer than expected. Try a smaller PDF or PPTX.");
+    }
+
+    await wait(NETWORK_RETRY_DELAY_MS);
+
+    try {
+      response = await uploadQuizFileRequest(apiBaseUrl, file);
+    } catch (retryError) {
+      if (retryError instanceof DOMException && retryError.name === "AbortError") {
+        throw new Error("File extraction is taking longer than expected. Try a smaller PDF or PPTX.");
+      }
+      throw new Error(`Could not reach the GENQUIZ backend at ${apiBaseUrl}. Check the API URL and backend server status.`);
+    }
+  }
 
   if (!response.ok) {
     throw new Error(await readApiError(response, "File upload failed. Try a smaller PDF or PPTX."));
   }
 
   return (await response.json()) as UploadedQuizFile;
+}
+
+async function uploadQuizFileRequest(apiBaseUrl: string, file: File) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), FILE_UPLOAD_CLIENT_TIMEOUT_MS);
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    return await fetch(`${apiBaseUrl}/api/quiz/upload`, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-store",
+      body: formData,
+      signal: controller.signal
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 export async function generateQuizFromFile(options: GenerateFromFileOptions): Promise<{
@@ -211,6 +244,7 @@ export async function generateQuizFromFile(options: GenerateFromFileOptions): Pr
       body: JSON.stringify({
         file_id: options.uploadedFileId,
         mode: options.mode,
+        user_prompt: options.userPrompt?.trim() || null,
         question_count: options.questionCount,
         difficulty: options.difficulty,
         time_per_question: options.timePerQuestion,
@@ -233,6 +267,9 @@ export async function generateQuizFromFile(options: GenerateFromFileOptions): Pr
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error("File quiz generation is taking longer than expected. Try fewer questions or a smaller file.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error(`Could not reach the GENQUIZ backend at ${apiBaseUrl}. Check the API URL and backend server status.`);
     }
     throw error;
   } finally {

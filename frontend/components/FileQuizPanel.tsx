@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Brain, CheckCircle2, FileText, Hash, Loader2, Sparkles, Timer, Trophy, UploadCloud, UserRound, UsersRound } from "lucide-react";
+import { Brain, CheckCircle2, FileText, Hash, Loader2, MessageSquareText, Sparkles, Timer, Trophy, UploadCloud, UserRound, UsersRound, X } from "lucide-react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { AnimatedInput } from "@/components/AnimatedInput";
@@ -30,6 +30,7 @@ export type FileQuizSettings = {
   difficulty: Difficulty;
   timePerQuestion: number;
   pointsPerQuestion: number;
+  userPrompt: string;
 };
 
 type FileQuizPanelProps = {
@@ -122,6 +123,7 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
   const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
   const [timePerQuestion, setTimePerQuestion] = useState("30");
   const [pointsPerQuestion, setPointsPerQuestion] = useState("1");
+  const [userPrompt, setUserPrompt] = useState("");
   const [uploadedFile, setUploadedFile] = useState<UploadedQuizFile | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -131,8 +133,16 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
     if (generating) return "AI is building and validating the quiz...";
     if (uploading) return "Extracting readable content from your file...";
     if (uploadedFile) return `${uploadedFile.extracted_characters.toLocaleString()} characters extracted`;
-    return "PDF and PPTX supported up to 10MB";
+    return "PDF and PPTX supported up to 25MB";
   }, [generating, uploadedFile, uploading]);
+
+  const clearUploadedFile = useCallback(() => {
+    setUploadedFile(null);
+    setUploadError(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, []);
 
   const handleFile = useCallback(async (file: File | undefined) => {
     if (!file) return;
@@ -164,7 +174,8 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
       questionCount: Number(questions),
       difficulty,
       timePerQuestion: Number(timePerQuestion),
-      pointsPerQuestion: Number(pointsPerQuestion)
+      pointsPerQuestion: Number(pointsPerQuestion),
+      userPrompt: userPrompt.trim()
     });
   };
 
@@ -285,11 +296,20 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
               {uploadedFile ? (
                 <motion.div
                   key="file"
-                  className="rounded-2xl border border-emerald-100/16 bg-emerald-100/[0.055] p-4 shadow-[0_16px_48px_rgba(0,0,0,0.2)] backdrop-blur-xl"
+                  className="relative rounded-2xl border border-emerald-100/16 bg-emerald-100/[0.055] p-4 pr-12 shadow-[0_16px_48px_rgba(0,0,0,0.2)] backdrop-blur-xl"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
+                  <button
+                    type="button"
+                    onClick={clearUploadedFile}
+                    disabled={generating || uploading}
+                    className="absolute right-3 top-3 grid size-8 place-items-center rounded-full border border-white/12 bg-white/[0.06] text-white/58 outline-none transition-colors hover:border-rose-100/34 hover:bg-rose-300/12 hover:text-rose-50 disabled:pointer-events-none disabled:opacity-40"
+                    aria-label="Remove uploaded file"
+                  >
+                    <X className="size-4" />
+                  </button>
                   <div className="flex items-start gap-3">
                     <FileText className="mt-1 size-5 shrink-0 text-emerald-100" />
                     <div className="min-w-0">
@@ -306,6 +326,16 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
                 {uploadError || errorMessage}
               </div>
             ) : null}
+
+            <AnimatedInput
+              label="Quiz Instructions"
+              value={userPrompt}
+              onChange={setUserPrompt}
+              placeholder="Example: focus on definitions, make exam-style questions, avoid dates..."
+              icon={<MessageSquareText className="size-4" />}
+              multiline
+              helper={<span className="text-xs font-semibold text-white/42">Optional instructions help the AI shape the quiz from this file.</span>}
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <AnimatedSelect label="Questions" value={questions} options={questionOptions} onChange={setQuestions} icon={Hash} />

@@ -8,8 +8,16 @@ def build_file_quiz_prompt(request: GenerateFromFileRequest, source_text: str) -
         "Do not include markdown, comments, explanations, code fences, or extra keys."
     )
 
+    user_specs = (request.user_prompt or "").strip()
+    specification_block = (
+        f"\nUser quiz specifications:\n{user_specs}\n"
+        if user_specs
+        else "\nUser quiz specifications:\nUse the most important concepts from the source.\n"
+    )
+
     user = f"""
 Create a multiple choice quiz from the source material below.
+{specification_block}
 
 Rules:
 - Generate exactly {request.question_count} questions.
@@ -21,6 +29,7 @@ Rules:
 - Avoid duplicate questions and repeated answer patterns.
 - Do not invent facts that are not supported by the source.
 - Keep questions concise and clear.
+- Follow the user quiz specifications when they do not conflict with the source or JSON rules.
 - If the source is too thin for the requested count, use the best supported concepts without hallucinating.
 - Return JSON only.
 

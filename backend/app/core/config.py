@@ -22,7 +22,7 @@ class Settings(BaseModel):
         r"^http://127\.0\.0\.1(:[0-9]+)?$"
     )
     generation_timeout_seconds: float = 120.0
-    max_upload_mb: int = 10
+    max_upload_mb: int = 25
     supabase_url: str = ""
     supabase_service_role_key: str = ""
     app_name: str = "GENQUIZ API"
@@ -92,7 +92,7 @@ def get_settings() -> Settings:
             Settings.model_fields["cors_allow_origin_regex"].default,
         ),
         generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
-        max_upload_mb=max(1, int(_float_env("MAX_UPLOAD_MB", 10))),
+        max_upload_mb=max(1, int(_float_env("MAX_UPLOAD_MB", 25))),
         supabase_url=_secret_env("SUPABASE_URL").rstrip("/"),
         supabase_service_role_key=_secret_env("SUPABASE_SERVICE_ROLE_KEY"),
     )

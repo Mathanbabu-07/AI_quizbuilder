@@ -77,6 +77,7 @@ class FileUploadResponse(BaseModel):
 
 class GenerateFromFileRequest(BaseModel):
     file_id: str = Field(..., min_length=8, max_length=80)
+    user_prompt: str | None = Field(default=None, max_length=900)
     mode: Literal["solo", "multiplayer"] = "solo"
     question_count: int = Field(..., ge=5, le=50)
     difficulty: Difficulty

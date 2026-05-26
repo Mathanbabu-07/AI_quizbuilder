@@ -8,9 +8,9 @@ from fastapi import HTTPException, status
 
 @dataclass
 class PDFExtractor:
-    timeout_seconds: float = 12.0
-    max_pages: int = 80
-    max_characters: int = 90_000
+    timeout_seconds: float = 18.0
+    max_pages: int = 160
+    max_characters: int = 140_000
 
     async def extract_text(self, payload: bytes) -> str:
         return await asyncio.to_thread(self._extract_sync, payload)
@@ -26,6 +26,7 @@ class PDFExtractor:
 
         started_at = time.monotonic()
         chunks: list[str] = []
+        total_characters = 0
 
         try:
             with fitz.open(stream=payload, filetype="pdf") as document:
@@ -35,11 +36,12 @@ class PDFExtractor:
                     if time.monotonic() - started_at > self.timeout_seconds:
                         raise TimeoutError("PDF extraction timed out.")
 
-                    text = page.get_text("text", sort=True)
+                    text = _extract_page_text(page)
                     if text:
                         chunks.append(text)
+                        total_characters += len(text)
 
-                    if sum(len(chunk) for chunk in chunks) >= self.max_characters:
+                    if total_characters >= self.max_characters:
                         break
         except TimeoutError as exc:
             raise HTTPException(
@@ -55,6 +57,26 @@ class PDFExtractor:
             ) from exc
 
         return clean_extracted_text("\n".join(chunks), self.max_characters)
+
+
+def _extract_page_text(page) -> str:
+    for mode in ("text", "blocks", "words"):
+        try:
+            if mode == "text":
+                value = page.get_text("text", sort=True)
+            elif mode == "blocks":
+                blocks = page.get_text("blocks", sort=True)
+                value = "\n".join(str(block[4]).strip() for block in blocks if len(block) > 4 and str(block[4]).strip())
+            else:
+                words = page.get_text("words", sort=True)
+                value = " ".join(str(word[4]).strip() for word in words if len(word) > 4 and str(word[4]).strip())
+        except Exception:
+            value = ""
+
+        if len(value.strip()) >= 24:
+            return value
+
+    return ""
 
 
 def clean_extracted_text(value: str, max_characters: int = 90_000) -> str:

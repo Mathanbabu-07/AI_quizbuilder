@@ -33,7 +33,7 @@ class AIQuizGenerator:
             "messages": build_file_quiz_prompt(request, compact_source),
             "temperature": 0.18,
             "top_p": 0.82,
-            "max_tokens": min(9000, 650 + request.question_count * 160),
+            "max_tokens": min(7600, 540 + request.question_count * 135),
         }
         headers = {
             "Authorization": f"Bearer {self.settings.openrouter_api_key}",
@@ -94,7 +94,7 @@ class AIQuizGenerator:
         )
 
 
-def _chunk_source_text(source_text: str, max_characters: int = 26_000) -> str:
+def _chunk_source_text(source_text: str, max_characters: int = 22_000) -> str:
     paragraphs = [part.strip() for part in source_text.split("\n") if part.strip()]
     chunks: list[str] = []
     total = 0
