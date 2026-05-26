@@ -21,7 +21,7 @@ export type QuizSettings = {
   timePerQuestion: number;
   totalQuizTime: number;
   pointsPerQuestion?: number;
-  source?: "text" | "file" | "manual";
+  source?: "text" | "file" | "url" | "manual";
 };
 
 export type QuizAnswer = {

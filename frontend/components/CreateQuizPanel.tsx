@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, FileUp, Gamepad2, Hash, MessageSquareText, Mic, Timer, Trophy, UserRound, UsersRound, Waves } from "lucide-react";
+import { Brain, FileUp, Gamepad2, Hash, Link2, MessageSquareText, Mic, Timer, Trophy, UserRound, UsersRound, Waves } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatedButton } from "@/components/AnimatedButton";
 import { AnimatedInput } from "@/components/AnimatedInput";
@@ -28,6 +28,7 @@ type CreateQuizPanelProps = {
   onMultiplayerChange: (enabled: boolean) => void;
   onGenerate: (settings: QuizSettings) => void;
   onOpenFileQuiz?: () => void;
+  onOpenUrlQuiz?: () => void;
 };
 
 function CreateQuizPanelComponent({
@@ -35,7 +36,8 @@ function CreateQuizPanelComponent({
   multiplayerEnabled,
   onMultiplayerChange,
   onGenerate,
-  onOpenFileQuiz
+  onOpenFileQuiz,
+  onOpenUrlQuiz
 }: CreateQuizPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [questions, setQuestions] = useState("10");
@@ -127,26 +129,51 @@ function CreateQuizPanelComponent({
       >
         <FloatingGlow className="-left-12 top-10 size-44 bg-cyan-300/14" />
         <FloatingGlow className="-right-16 bottom-24 size-52 bg-fuchsia-300/12" />
-        {onOpenFileQuiz ? (
-          <motion.button
-            type="button"
-            onClick={onOpenFileQuiz}
-            className="group absolute left-0 top-0 z-20 flex size-14 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-16"
-            whileHover={{ y: -2, scale: 1.04 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Generate quiz from PDF or PPTX"
-          >
-            <span className="absolute inset-0 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(103,232,249,0.3),transparent_64%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            <motion.span
-              className="absolute inset-1 rounded-[0.85rem] border border-cyan-100/10"
-              animate={{ opacity: [0.25, 0.85, 0.25], scale: [1, 1.05, 1] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <FileUp className="relative size-5 sm:size-6" />
-            <span className="relative font-display text-[0.55rem] font-extrabold uppercase leading-none tracking-[0.12em] text-cyan-50/78">
-              PDF
-            </span>
-          </motion.button>
+        {onOpenFileQuiz || onOpenUrlQuiz ? (
+          <div className="absolute left-0 top-0 z-20 flex items-center gap-2">
+            {onOpenFileQuiz ? (
+              <motion.button
+                type="button"
+                onClick={onOpenFileQuiz}
+                className="group relative flex size-14 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-16"
+                whileHover={{ y: -2, scale: 1.04 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Generate quiz from PDF or PPTX"
+              >
+                <span className="absolute inset-0 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(103,232,249,0.3),transparent_64%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <motion.span
+                  className="absolute inset-1 rounded-[0.85rem] border border-cyan-100/10"
+                  animate={{ opacity: [0.25, 0.85, 0.25], scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <FileUp className="relative size-5 sm:size-6" />
+                <span className="relative font-display text-[0.55rem] font-extrabold uppercase leading-none tracking-[0.12em] text-cyan-50/78">
+                  PDF
+                </span>
+              </motion.button>
+            ) : null}
+            {onOpenUrlQuiz ? (
+              <motion.button
+                type="button"
+                onClick={onOpenUrlQuiz}
+                className="group relative flex size-14 flex-col items-center justify-center gap-0.5 rounded-2xl border border-fuchsia-100/18 bg-white/[0.065] text-fuchsia-100 shadow-[0_0_28px_rgba(217,70,239,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-fuchsia-100/38 hover:bg-fuchsia-100/12 focus-visible:ring-2 focus-visible:ring-fuchsia-200/70 sm:size-16"
+                whileHover={{ y: -2, scale: 1.04 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Generate quiz from URL"
+              >
+                <span className="absolute inset-0 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(240,171,252,0.28),transparent_64%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <motion.span
+                  className="absolute inset-1 rounded-[0.85rem] border border-fuchsia-100/10"
+                  animate={{ opacity: [0.22, 0.82, 0.22], scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                />
+                <Link2 className="relative size-5 sm:size-6" />
+                <span className="relative font-display text-[0.55rem] font-extrabold uppercase leading-none tracking-[0.12em] text-fuchsia-50/78">
+                  URL
+                </span>
+              </motion.button>
+            ) : null}
+          </div>
         ) : null}
 
         <motion.div

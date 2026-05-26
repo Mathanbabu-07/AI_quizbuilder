@@ -16,22 +16,28 @@ class SupabaseService:
         quiz_data: dict[str, Any],
         mode: str,
         host_id: str | None,
+        source_type: str | None = None,
+        source_url: str | None = None,
     ) -> str | None:
         if not quiz_data.get("questions"):
             raise ValueError("Cannot save an empty quiz.")
 
         try:
+            row_payload: dict[str, Any] = {
+                "title": title,
+                "quiz_data": quiz_data,
+                "mode": mode,
+                "host_id": host_id,
+            }
+            if source_type:
+                row_payload["source_type"] = source_type
+            if source_url:
+                row_payload["source_url"] = source_url
+
             response = (
                 get_supabase_client()
                 .table("generated_quizzes")
-                .insert(
-                    {
-                        "title": title,
-                        "quiz_data": quiz_data,
-                        "mode": mode,
-                        "host_id": host_id,
-                    }
-                )
+                .insert(row_payload)
                 .execute()
             )
             row = response.data[0] if response.data else None

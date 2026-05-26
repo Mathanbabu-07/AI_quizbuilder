@@ -142,6 +142,7 @@ async def generate_quiz_from_file(
         quiz_data=quiz_data,
         mode=request.mode,
         host_id=request.host_id,
+        source_type="file",
     )
     room_code: str | None = None
     room_id: str | None = None

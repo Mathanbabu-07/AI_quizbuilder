@@ -18,6 +18,7 @@ import { QuizGameScreen } from "@/components/QuizGameScreen";
 import { QuizLoadingScreen } from "@/components/QuizLoadingScreen";
 import { QuizResultsScreen } from "@/components/QuizResultsScreen";
 import { QuizReviewPanel } from "@/components/QuizReviewPanel";
+import { UrlQuizPanel, type UrlQuizSettings } from "@/components/UrlQuizPanel";
 import { WaitingRoom } from "@/components/WaitingRoom";
 import { MultiplayerResultsWaiting } from "@/components/MultiplayerResultsWaiting";
 import { generateRoomCode } from "@/components/RoomCodeGenerator";
@@ -25,7 +26,7 @@ import { useDeviceHostId } from "@/hooks/useDeviceHostId";
 import { useHostRoom } from "@/hooks/useHostRoom";
 import { useParticipantRoom } from "@/hooks/useParticipantRoom";
 import { deleteManualQuiz, getManualQuiz, listManualQuizzes, saveManualQuiz } from "@/lib/manualQuizApi";
-import { generateQuiz, generateQuizFromFile } from "@/lib/quizApi";
+import { generateQuiz, generateQuizFromFile, generateQuizFromUrl } from "@/lib/quizApi";
 import {
   manualQuizToGeneratedQuiz,
   manualQuizToSettings,
@@ -44,6 +45,7 @@ type Screen =
   | "moreGames"
   | "create"
   | "fileQuiz"
+  | "urlQuiz"
   | "loading"
   | "review"
   | "game"
@@ -60,6 +62,7 @@ const routableScreens: Screen[] = [
   "moreGames",
   "create",
   "fileQuiz",
+  "urlQuiz",
   "loading",
   "review",
   "game",
@@ -69,7 +72,7 @@ const routableScreens: Screen[] = [
 ];
 
 function modeForScreen(nextScreen: Screen): CreationMode {
-  if (nextScreen === "create" || nextScreen === "fileQuiz" || nextScreen === "loading") {
+  if (nextScreen === "create" || nextScreen === "fileQuiz" || nextScreen === "urlQuiz" || nextScreen === "loading") {
     return "ai";
   }
 
@@ -110,6 +113,7 @@ export function HeroSection() {
   const [savedLoading, setSavedLoading] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
   const [fileGenerating, setFileGenerating] = useState(false);
+  const [urlGenerating, setUrlGenerating] = useState(false);
   const hostId = useDeviceHostId();
   const hostRoom = useHostRoom(multiplayerEnabled, roomCode, quiz, settings);
   const participantRoom = useParticipantRoom();
@@ -179,6 +183,7 @@ export function HeroSection() {
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setFileGenerating(false);
+    setUrlGenerating(false);
     setErrorMessage(null);
     goToScreen("create");
   };
@@ -194,6 +199,7 @@ export function HeroSection() {
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setFileGenerating(false);
+    setUrlGenerating(false);
     setErrorMessage(null);
     goToScreen("questionTypes");
   };
@@ -208,6 +214,7 @@ export function HeroSection() {
     setRoomCode(null);
     setMultiplayerEnabled(false);
     setFileGenerating(false);
+    setUrlGenerating(false);
     setErrorMessage(null);
     goToScreen("moreGames");
   };
@@ -278,7 +285,24 @@ export function HeroSection() {
     setOpenedSavedQuizId(null);
     setRoomCode(null);
     setMultiplayerEnabled(false);
+    setFileGenerating(false);
+    setUrlGenerating(false);
     goToScreen("fileQuiz");
+  };
+
+  const openUrlQuizFlow = () => {
+    setErrorMessage(null);
+    setCreationMode("ai");
+    setQuiz(null);
+    setSettings(null);
+    setResult(null);
+    setManualDraft(null);
+    setOpenedSavedQuizId(null);
+    setRoomCode(null);
+    setMultiplayerEnabled(false);
+    setFileGenerating(false);
+    setUrlGenerating(false);
+    goToScreen("urlQuiz");
   };
 
   const handleGenerateFromFile = async (fileSettings: FileQuizSettings) => {
@@ -328,6 +352,54 @@ export function HeroSection() {
     }
   };
 
+  const handleGenerateFromUrl = async (urlSettings: UrlQuizSettings) => {
+    setErrorMessage(null);
+    setUrlGenerating(true);
+    const nextSettings: QuizSettings = {
+      prompt: `URL quiz: ${urlSettings.url}`,
+      questionCount: urlSettings.questionCount,
+      difficulty: urlSettings.difficulty,
+      timePerQuestion: urlSettings.timePerQuestion,
+      totalQuizTime: Math.max(1, Math.ceil((urlSettings.questionCount * urlSettings.timePerQuestion) / 60)),
+      pointsPerQuestion: urlSettings.pointsPerQuestion,
+      source: "url"
+    };
+
+    try {
+      const response = await generateQuizFromUrl({
+        extractionId: urlSettings.extractionId,
+        url: urlSettings.url,
+        mode: urlSettings.mode,
+        questionCount: urlSettings.questionCount,
+        difficulty: urlSettings.difficulty,
+        timePerQuestion: urlSettings.timePerQuestion,
+        pointsPerQuestion: urlSettings.pointsPerQuestion,
+        userPrompt: urlSettings.userPrompt,
+        hostId,
+        hostName: "Host"
+      });
+      setQuiz(response.quiz);
+      setSettings(nextSettings);
+      setCreationMode("ai");
+
+      if (urlSettings.mode === "multiplayer") {
+        setMultiplayerEnabled(true);
+        setRoomCode(response.roomCode ?? generateRoomCode());
+        goToScreen("review");
+        return;
+      }
+
+      setMultiplayerEnabled(false);
+      setRoomCode(null);
+      goToScreen("game");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "The AI engine could not generate a quiz from this URL.");
+      goToScreen("urlQuiz");
+    } finally {
+      setUrlGenerating(false);
+    }
+  };
+
   const resetFlow = () => {
     setQuiz(null);
     setSettings(null);
@@ -338,6 +410,7 @@ export function HeroSection() {
     setManualDraft(null);
     setOpenedSavedQuizId(null);
     setFileGenerating(false);
+    setUrlGenerating(false);
     participantRoom.leaveRoom();
     if (creationMode === "ai") {
       goToScreen("create");
@@ -638,6 +711,7 @@ export function HeroSection() {
             onMultiplayerChange={setMultiplayerEnabled}
             onGenerate={handleGenerate}
             onOpenFileQuiz={openFileQuizFlow}
+            onOpenUrlQuiz={openUrlQuizFlow}
           />
         ) : screen === "fileQuiz" ? (
           <FileQuizPanel
@@ -645,6 +719,14 @@ export function HeroSection() {
             errorMessage={errorMessage}
             generating={fileGenerating}
             onGenerate={handleGenerateFromFile}
+            onBack={() => goToScreen("create")}
+          />
+        ) : screen === "urlQuiz" ? (
+          <UrlQuizPanel
+            key="urlQuiz"
+            errorMessage={errorMessage}
+            generating={urlGenerating}
+            onGenerate={handleGenerateFromUrl}
             onBack={() => goToScreen("create")}
           />
         ) : screen === "loading" ? (

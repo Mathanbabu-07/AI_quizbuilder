@@ -20,7 +20,13 @@ logger = logging.getLogger("genquiz.file_ai")
 class AIQuizGenerator:
     settings: Settings
 
-    async def generate_from_text(self, request: GenerateFromFileRequest, source_text: str) -> GeneratedQuiz:
+    async def generate_from_text(
+        self,
+        request: GenerateFromFileRequest,
+        source_text: str,
+        *,
+        model: str | None = None,
+    ) -> GeneratedQuiz:
         if not self.settings.openrouter_api_key:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -29,7 +35,7 @@ class AIQuizGenerator:
 
         compact_source = _chunk_source_text(source_text)
         payload = {
-            "model": self.settings.openrouter_file_model,
+            "model": model or self.settings.openrouter_file_model,
             "messages": build_file_quiz_prompt(request, compact_source),
             "temperature": 0.18,
             "top_p": 0.82,

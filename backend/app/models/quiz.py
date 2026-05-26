@@ -92,6 +92,42 @@ class GenerateFromFileResponse(BaseModel):
     meta: dict[str, int | str | None]
 
 
+class UrlExtractRequest(BaseModel):
+    url: str = Field(..., min_length=8, max_length=2048)
+
+
+class UrlExtractResponse(BaseModel):
+    extraction_id: str
+    url: str
+    title: str | None = None
+    extracted_characters: int
+    preview: str
+
+
+class GenerateFromUrlRequest(BaseModel):
+    extraction_id: str | None = Field(default=None, min_length=8, max_length=80)
+    url: str | None = Field(default=None, min_length=8, max_length=2048)
+    user_prompt: str | None = Field(default=None, max_length=900)
+    mode: Literal["solo", "multiplayer"] = "solo"
+    question_count: int = Field(..., ge=5, le=50)
+    difficulty: Difficulty
+    time_per_question: int = Field(..., ge=5, le=300)
+    points_per_question: int = Field(default=1, ge=1, le=10)
+    host_id: str | None = Field(default=None, max_length=80)
+    host_name: str = Field(default="Host", min_length=1, max_length=40)
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "GenerateFromUrlRequest":
+        if not self.extraction_id and not self.url:
+            raise ValueError("Provide extraction_id or url.")
+        return self
+
+
+class GenerateFromUrlResponse(BaseModel):
+    quiz: GeneratedQuiz
+    meta: dict[str, int | str | None]
+
+
 class VerifyQuizRequest(BaseModel):
     quiz: GeneratedQuiz
     mode: Literal["solo", "multiplayer"] = "solo"

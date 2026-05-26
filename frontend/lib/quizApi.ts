@@ -2,6 +2,7 @@ import type { GeneratedQuiz, QuizSettings } from "@/types/quiz";
 
 const GENERATION_CLIENT_TIMEOUT_MS = 125_000;
 const FILE_UPLOAD_CLIENT_TIMEOUT_MS = 70_000;
+const URL_EXTRACTION_CLIENT_TIMEOUT_MS = 55_000;
 const PRODUCTION_API_FALLBACK = "https://genquiz-backend-exz2.onrender.com";
 const NETWORK_RETRY_DELAY_MS = 850;
 
@@ -60,12 +61,35 @@ export type GenerateFromFileOptions = {
   hostName?: string;
 };
 
+export type ExtractedUrlContent = {
+  extraction_id: string;
+  url: string;
+  title?: string | null;
+  extracted_characters: number;
+  preview: string;
+};
+
+export type GenerateFromUrlOptions = {
+  extractionId?: string;
+  url?: string;
+  mode: "solo" | "multiplayer";
+  questionCount: number;
+  difficulty: QuizSettings["difficulty"];
+  timePerQuestion: number;
+  pointsPerQuestion: number;
+  userPrompt?: string;
+  hostId?: string | null;
+  hostName?: string;
+};
+
 type GenerateFromFileApiResponse = {
   quiz: GeneratedQuiz;
   meta: {
     room_code?: string | null;
   };
 };
+
+type GenerateFromUrlApiResponse = GenerateFromFileApiResponse;
 
 type ApiErrorPayload = {
   detail?: unknown;
@@ -267,6 +291,96 @@ export async function generateQuizFromFile(options: GenerateFromFileOptions): Pr
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error("File quiz generation is taking longer than expected. Try fewer questions or a smaller file.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error(`Could not reach the GENQUIZ backend at ${apiBaseUrl}. Check the API URL and backend server status.`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+export async function extractUrlContent(url: string): Promise<ExtractedUrlContent> {
+  const apiBaseUrl = getApiBaseUrl();
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), URL_EXTRACTION_CLIENT_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/url-quiz/extract`, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ url: url.trim() }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(await readApiError(response, "URL extraction failed. Try another public page."));
+    }
+
+    return (await response.json()) as ExtractedUrlContent;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("URL extraction is taking longer than expected. Try a shorter public article or documentation page.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error(`Could not reach the GENQUIZ backend at ${apiBaseUrl}. Check the API URL and backend server status.`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+export async function generateQuizFromUrl(options: GenerateFromUrlOptions): Promise<{
+  quiz: GeneratedQuiz;
+  roomCode: string | null;
+}> {
+  const apiBaseUrl = getApiBaseUrl();
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/url-quiz/generate`, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        extraction_id: options.extractionId ?? null,
+        url: options.url?.trim() || null,
+        mode: options.mode,
+        user_prompt: options.userPrompt?.trim() || null,
+        question_count: options.questionCount,
+        difficulty: options.difficulty,
+        time_per_question: options.timePerQuestion,
+        points_per_question: options.pointsPerQuestion,
+        host_id: options.hostId,
+        host_name: options.hostName ?? "Host"
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(await readApiError(response, "URL quiz generation failed. Please try again."));
+    }
+
+    const payload = (await response.json()) as GenerateFromUrlApiResponse;
+    return {
+      quiz: payload.quiz,
+      roomCode: payload.meta.room_code ?? null
+    };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("URL quiz generation is taking longer than expected. Try fewer questions or a shorter page.");
     }
     if (error instanceof TypeError) {
       throw new Error(`Could not reach the GENQUIZ backend at ${apiBaseUrl}. Check the API URL and backend server status.`);

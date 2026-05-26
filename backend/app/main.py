@@ -12,6 +12,7 @@ from app.api.manual_quizzes import router as manual_quizzes_router
 from app.api.memory_grid import router as memory_grid_router
 from app.api.multiplayer import router as multiplayer_router
 from app.api.quiz import router as quiz_router
+from app.api.url_quiz import router as url_quiz_router
 from app.core.config import get_settings
 from app.services.supabase_client import get_supabase_diagnostics
 from app.sockets.server import sio
@@ -48,6 +49,7 @@ fastapi_app.add_middleware(
 )
 
 fastapi_app.include_router(quiz_router)
+fastapi_app.include_router(url_quiz_router)
 fastapi_app.include_router(manual_quizzes_router)
 fastapi_app.include_router(hand_cricket_router)
 fastapi_app.include_router(emoji_rush_router)
@@ -83,6 +85,7 @@ async def health(request: Request):
         "manual_storage": "supabase_rest_http1",
         "emoji_rush_storage": "supabase_rest_http1",
         "memory_grid_storage": "supabase_rest_http1",
+        "url_quiz_extraction": "scrapedo",
     }
 
 

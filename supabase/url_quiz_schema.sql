@@ -1,5 +1,5 @@
--- GENQUIZ PDF/PPT AI quiz + multiplayer persistence.
--- Safe to run in Supabase SQL Editor without touching game tables.
+-- GENQUIZ URL-to-Quiz persistence additions.
+-- Safe to run in Supabase SQL Editor after the base/manual schema exists.
 
 create extension if not exists pgcrypto;
 
@@ -48,14 +48,11 @@ create table if not exists public.room_players (
   constraint room_players_score_check check (score >= 0)
 );
 
-create index if not exists generated_quizzes_host_created_idx
-on public.generated_quizzes(host_id, created_at desc);
-
-create index if not exists generated_quizzes_created_idx
-on public.generated_quizzes(created_at desc);
-
 create index if not exists generated_quizzes_source_created_idx
 on public.generated_quizzes(source_type, created_at desc);
+
+create index if not exists generated_quizzes_source_url_idx
+on public.generated_quizzes(source_url);
 
 create index if not exists multiplayer_rooms_code_idx
 on public.multiplayer_rooms(room_code);
