@@ -133,7 +133,7 @@ function FileQuizPanelComponent({ errorMessage, generating, onGenerate, onBack }
     if (generating) return "AI is building and validating the quiz...";
     if (uploading) return "Extracting readable content from your file...";
     if (uploadedFile) return `${uploadedFile.extracted_characters.toLocaleString()} characters extracted`;
-    return "PDF and PPTX supported up to 25MB";
+    return "PDF and PPTX supported up to 10MB";
   }, [generating, uploadedFile, uploading]);
 
   const clearUploadedFile = useCallback(() => {

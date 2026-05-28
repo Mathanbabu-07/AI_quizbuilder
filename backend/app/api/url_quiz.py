@@ -15,8 +15,9 @@ from app.models.quiz import (
     VerifyQuizRequest,
     VerifyQuizResponse,
 )
-from app.services.ai_generator import AIQuizGenerator
-from app.services.multiplayer_service import create_persistent_room
+from app.services.multiplayer_service import create_persistent_room_async
+from app.services.openrouter_service import QuizGenerationSettings, generate_quiz_with_model
+from app.services.quiz_formatter import quiz_to_storage_dict
 from app.services.quiz_validator import validate_quiz_payload
 from app.services.supabase_service import supabase_service
 from app.services.url_extractor import URLExtractor
@@ -79,15 +80,20 @@ async def generate_quiz_from_url(
         host_id=request.host_id,
         host_name=request.host_name,
     )
-    quiz = await AIQuizGenerator(settings).generate_from_text(
-        generator_request,
+    quiz = await generate_quiz_with_model(
+        settings.openrouter_url_model,
         cached.text,
-        model=settings.openrouter_url_model,
-        source_label="URL",
+        QuizGenerationSettings.from_file_request(
+            settings,
+            generator_request,
+            source_type="url",
+            source_url=cached.url,
+            source_title=cached.title,
+        ),
     )
-    quiz_id = supabase_service.save_generated_quiz(
+    quiz_id = await supabase_service.save_generated_quiz_async(
         title=quiz.title,
-        quiz_data=quiz.model_dump(),
+        quiz_data=quiz_to_storage_dict(quiz),
         mode=request.mode,
         host_id=request.host_id,
         source_type="url",
@@ -97,7 +103,7 @@ async def generate_quiz_from_url(
     room_code: str | None = None
     room_id: str | None = None
     if request.mode == "multiplayer":
-        room_code, room_id = create_persistent_room(quiz_id=quiz_id, host_name=request.host_name)
+        room_code, room_id = await create_persistent_room_async(quiz_id=quiz_id, host_name=request.host_name)
 
     return GenerateFromUrlResponse(
         quiz=quiz,
@@ -120,22 +126,22 @@ async def verify_url_quiz(request: VerifyQuizRequest) -> VerifyQuizResponse:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Cannot verify an empty quiz.")
 
     quiz = validate_quiz_payload(
-        request.quiz.model_dump(),
+        request.quiz.model_dump(by_alias=True),
         question_count=len(request.quiz.questions),
         difficulty=request.quiz.questions[0].difficulty if request.quiz.questions else "Medium",
         time_per_question=request.quiz.questions[0].time_limit if request.quiz.questions else 30,
         points_per_question=request.quiz.questions[0].points if request.quiz.questions else 1,
     )
-    quiz_id = supabase_service.save_generated_quiz(
+    quiz_id = await supabase_service.save_generated_quiz_async(
         title=quiz.title,
-        quiz_data=quiz.model_dump(),
+        quiz_data=quiz_to_storage_dict(quiz),
         mode=request.mode,
         host_id=request.host_id,
         source_type="url",
     )
     room_code: str | None = None
     if request.mode == "multiplayer":
-        room_code, _ = create_persistent_room(quiz_id=quiz_id, host_name=request.host_name)
+        room_code, _ = await create_persistent_room_async(quiz_id=quiz_id, host_name=request.host_name)
 
     return VerifyQuizResponse(quiz=quiz, quiz_id=quiz_id, room_code=room_code)
 

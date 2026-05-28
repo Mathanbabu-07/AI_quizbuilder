@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.services.multiplayer_service import create_persistent_room
+from app.services.multiplayer_service import create_persistent_room_async
 from app.services.supabase_service import supabase_service
 
 router = APIRouter(prefix="/api/multiplayer", tags=["multiplayer"])
@@ -39,7 +39,7 @@ class StartRoomResponse(BaseModel):
 
 @router.post("/create-room", response_model=CreateRoomResponse)
 async def create_room(request: CreateRoomRequest) -> CreateRoomResponse:
-    room_code, room_id = create_persistent_room(quiz_id=request.quiz_id, host_name=request.host_name)
+    room_code, room_id = await create_persistent_room_async(quiz_id=request.quiz_id, host_name=request.host_name)
     return CreateRoomResponse(room_code=room_code, room_id=room_id)
 
 
@@ -48,7 +48,7 @@ async def join_room(request: JoinRoomRequest) -> JoinRoomResponse:
     if not request.room_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="room_id is required for HTTP persistence join.")
 
-    player_id = supabase_service.add_room_player(room_id=request.room_id, player_name=request.player_name)
+    player_id = await supabase_service.add_room_player_async(room_id=request.room_id, player_name=request.player_name)
     return JoinRoomResponse(player_id=player_id)
 
 

@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,6 +10,26 @@ logger = logging.getLogger("genquiz.supabase_service")
 
 @dataclass
 class SupabaseService:
+    async def save_generated_quiz_async(
+        self,
+        *,
+        title: str,
+        quiz_data: dict[str, Any],
+        mode: str,
+        host_id: str | None,
+        source_type: str | None = None,
+        source_url: str | None = None,
+    ) -> str | None:
+        return await asyncio.to_thread(
+            self.save_generated_quiz,
+            title=title,
+            quiz_data=quiz_data,
+            mode=mode,
+            host_id=host_id,
+            source_type=source_type,
+            source_url=source_url,
+        )
+
     def save_generated_quiz(
         self,
         *,
@@ -67,6 +88,14 @@ class SupabaseService:
             logger.warning("Multiplayer room was not persisted: %s", exc)
             return None
 
+    async def create_multiplayer_room_async(self, *, room_code: str, quiz_id: str | None, host_name: str) -> str | None:
+        return await asyncio.to_thread(
+            self.create_multiplayer_room,
+            room_code=room_code,
+            quiz_id=quiz_id,
+            host_name=host_name,
+        )
+
     def add_room_player(self, *, room_id: str, player_name: str) -> str | None:
         try:
             response = (
@@ -80,6 +109,9 @@ class SupabaseService:
         except Exception as exc:
             logger.warning("Room player was not persisted: %s", exc)
             return None
+
+    async def add_room_player_async(self, *, room_id: str, player_name: str) -> str | None:
+        return await asyncio.to_thread(self.add_room_player, room_id=room_id, player_name=player_name)
 
 
 supabase_service = SupabaseService()

@@ -60,7 +60,7 @@ def _normalize_quiz_payload(
     if "quiz" in payload and isinstance(payload["quiz"], dict):
         payload = payload["quiz"]
 
-    title = _clean_text(payload.get("title")) or "GENQUIZ URL Quiz"
+    title = _clean_text(payload.get("title")) or "GENQUIZ Quiz"
     raw_questions = payload.get("questions") or payload.get("mcqs") or payload.get("items") or []
     if not isinstance(raw_questions, list):
         raise QuizValidationError("AI response questions must be a list.")
@@ -84,6 +84,12 @@ def _normalize_quiz_payload(
             or item.get("correct")
             or item.get("correctOption")
         )
+        explanation = _clean_text(
+            item.get("explanation")
+            or item.get("rationale")
+            or item.get("reason")
+            or item.get("why")
+        )
 
         if not question_text or len(options) < 4 or not answer:
             continue
@@ -102,6 +108,7 @@ def _normalize_quiz_payload(
                 "question": question_text,
                 "options": options,
                 "correctAnswer": answer,
+                "explanation": explanation[:600],
                 "difficulty": difficulty,
                 "timeLimit": time_per_question,
                 "points": points_per_question,

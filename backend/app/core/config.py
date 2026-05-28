@@ -12,7 +12,7 @@ load_dotenv(BASE_DIR / ".env")
 class Settings(BaseModel):
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    openrouter_model: str = "openai/gpt-oss-120b:free"
     openrouter_file_model: str = "nvidia/nemotron-3-nano-30b-a3b:free"
     openrouter_url_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
     scrapedo_api_token: str = ""
@@ -25,9 +25,10 @@ class Settings(BaseModel):
         r"^http://127\.0\.0\.1(:[0-9]+)?$"
     )
     generation_timeout_seconds: float = 120.0
-    max_upload_mb: int = 25
+    max_upload_mb: int = 10
     max_url_content_length: int = 50_000
     supabase_url: str = ""
+    supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
     app_name: str = "GENQUIZ API"
 
@@ -58,6 +59,14 @@ def _secret_env(name: str) -> str:
     return "".join(value.split())
 
 
+def _secret_env_any(*names: str) -> str:
+    for name in names:
+        value = _secret_env(name)
+        if value:
+            return value
+    return ""
+
+
 def _text_env(name: str, default: str) -> str:
     value = os.getenv(name, "").strip()
     return value or default
@@ -68,6 +77,14 @@ def _openrouter_model_env(name: str, default: str) -> str:
     if value == "nemotron-3-super-120b-a12b:free":
         return "nvidia/nemotron-3-super-120b-a12b:free"
     return value
+
+
+def _text_env_any(names: tuple[str, ...], default: str) -> str:
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return default
 
 
 def _unique_urls(values: list[str]) -> list[str]:
@@ -91,16 +108,16 @@ def get_settings() -> Settings:
     return Settings(
         openrouter_api_key=_secret_env("OPENROUTER_API_KEY"),
         openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/"),
-        openrouter_model=_openrouter_model_env("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free"),
-        openrouter_file_model=_text_env(
-            "OPENROUTER_FILE_MODEL",
+        openrouter_model=_openrouter_model_env("OPENROUTER_MODEL", "openai/gpt-oss-120b:free"),
+        openrouter_file_model=_text_env_any(
+            ("OPENROUTER_PDF_MODEL", "OPENROUTER_FILE_MODEL"),
             "nvidia/nemotron-3-nano-30b-a3b:free",
         ),
         openrouter_url_model=_openrouter_model_env(
             "OPENROUTER_URL_MODEL",
             "nvidia/nemotron-3-super-120b-a12b:free",
         ),
-        scrapedo_api_token=_secret_env("SCRAPEDO_API_TOKEN"),
+        scrapedo_api_token=_secret_env_any("SCRAPEDO_API_KEY", "SCRAPEDO_API_TOKEN"),
         scrapedo_base_url=os.getenv("SCRAPEDO_BASE_URL", "http://api.scrape.do/").strip(),
         frontend_url=frontend_url,
         frontend_urls=frontend_urls,
@@ -109,8 +126,9 @@ def get_settings() -> Settings:
             Settings.model_fields["cors_allow_origin_regex"].default,
         ),
         generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
-        max_upload_mb=max(1, int(_float_env("MAX_UPLOAD_MB", 25))),
+        max_upload_mb=max(1, int(_float_env("PDF_MAX_UPLOAD_MB", _float_env("MAX_UPLOAD_MB", 10)))),
         max_url_content_length=max(4_000, int(_float_env("MAX_URL_CONTENT_LENGTH", 50_000))),
         supabase_url=_secret_env("SUPABASE_URL").rstrip("/"),
+        supabase_anon_key=_secret_env("SUPABASE_ANON_KEY"),
         supabase_service_role_key=_secret_env("SUPABASE_SERVICE_ROLE_KEY"),
     )

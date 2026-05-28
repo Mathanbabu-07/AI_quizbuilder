@@ -34,9 +34,15 @@ Required Render environment variables:
 
 ```env
 OPENROUTER_API_KEY=your-openrouter-api-key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=openai/gpt-oss-120b:free
+OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
+OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+SCRAPEDO_API_KEY=your-scrapedo-api-key
 GENERATION_TIMEOUT_SECONDS=120
+PDF_MAX_UPLOAD_MB=10
 SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 FRONTEND_URL=https://your-vercel-frontend.example.com
 FRONTEND_URLS=https://your-vercel-frontend.example.com

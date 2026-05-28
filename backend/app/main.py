@@ -6,11 +6,13 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
 
+from app.api.ai_quiz import router as ai_quiz_router
 from app.api.emoji_rush import router as emoji_rush_router
 from app.api.hand_cricket import router as hand_cricket_router
 from app.api.manual_quizzes import router as manual_quizzes_router
 from app.api.memory_grid import router as memory_grid_router
 from app.api.multiplayer import router as multiplayer_router
+from app.api.pdf_quiz import router as pdf_quiz_router
 from app.api.quiz import router as quiz_router
 from app.api.url_quiz import router as url_quiz_router
 from app.core.config import get_settings
@@ -48,8 +50,10 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
-fastapi_app.include_router(quiz_router)
+fastapi_app.include_router(ai_quiz_router)
+fastapi_app.include_router(pdf_quiz_router)
 fastapi_app.include_router(url_quiz_router)
+fastapi_app.include_router(quiz_router)
 fastapi_app.include_router(manual_quizzes_router)
 fastapi_app.include_router(hand_cricket_router)
 fastapi_app.include_router(emoji_rush_router)
@@ -85,6 +89,9 @@ async def health(request: Request):
         "manual_storage": "supabase_rest_http1",
         "emoji_rush_storage": "supabase_rest_http1",
         "memory_grid_storage": "supabase_rest_http1",
+        "ai_quiz_model": settings.openrouter_model,
+        "pdf_quiz_model": settings.openrouter_file_model,
+        "url_quiz_model": settings.openrouter_url_model,
         "url_quiz_extraction": "scrapedo",
     }
 

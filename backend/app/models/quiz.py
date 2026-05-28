@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 Difficulty = Literal["Easy", "Medium", "Hard", "Very Hard"]
 
@@ -18,15 +18,29 @@ class QuizQuestion(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     question: str = Field(..., min_length=8, max_length=500)
-    choices: list[str] = Field(..., validation_alias=AliasChoices("choices", "options"), min_length=4, max_length=4)
+    choices: list[str] = Field(
+        ...,
+        validation_alias=AliasChoices("choices", "options"),
+        serialization_alias="options",
+        min_length=4,
+        max_length=4,
+    )
     correct_answer: str = Field(
         ...,
         validation_alias=AliasChoices("correct_answer", "correctAnswer"),
+        serialization_alias="correctAnswer",
         min_length=1,
         max_length=240,
     )
-    difficulty: Difficulty
-    time_limit: int = Field(default=30, validation_alias=AliasChoices("time_limit", "timeLimit"), ge=5, le=300)
+    explanation: str = Field(default="", max_length=600)
+    difficulty: Difficulty = "Medium"
+    time_limit: int = Field(
+        default=30,
+        validation_alias=AliasChoices("time_limit", "timeLimit"),
+        serialization_alias="timeLimit",
+        ge=5,
+        le=300,
+    )
     points: int = Field(default=1, ge=1, le=10)
 
     @field_validator("choices")
@@ -45,6 +59,17 @@ class QuizQuestion(BaseModel):
         if self.correct_answer.strip().casefold() not in normalized:
             raise ValueError("correct_answer must exactly match one of the choices.")
         return self
+
+    @model_serializer
+    def serialize_model(self) -> dict[str, object]:
+        return {
+            "question": self.question,
+            "options": self.choices,
+            "correctAnswer": self.correct_answer,
+            "explanation": self.explanation,
+            "timeLimit": self.time_limit,
+            "points": self.points,
+        }
 
 
 class GeneratedQuiz(BaseModel):

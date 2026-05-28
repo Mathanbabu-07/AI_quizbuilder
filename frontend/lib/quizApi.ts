@@ -38,7 +38,25 @@ function getApiBaseUrl() {
 }
 
 type GenerateQuizApiResponse = {
-  quiz: GeneratedQuiz;
+  quiz: unknown;
+};
+
+type RawQuizQuestion = {
+  question?: unknown;
+  choices?: unknown;
+  options?: unknown;
+  correct_answer?: unknown;
+  correctAnswer?: unknown;
+  explanation?: unknown;
+  difficulty?: unknown;
+  time_limit?: unknown;
+  timeLimit?: unknown;
+  points?: unknown;
+};
+
+type RawGeneratedQuiz = {
+  title?: unknown;
+  questions?: unknown;
 };
 
 export type UploadedQuizFile = {
@@ -83,7 +101,7 @@ export type GenerateFromUrlOptions = {
 };
 
 type GenerateFromFileApiResponse = {
-  quiz: GeneratedQuiz;
+  quiz: unknown;
   meta: {
     room_code?: string | null;
   };
@@ -123,7 +141,7 @@ async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attem
   const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
 
   try {
-    return await fetch(`${apiBaseUrl}/api/quiz/generate`, {
+    return await fetch(`${apiBaseUrl}/api/ai-quiz/generate`, {
       method: "POST",
       mode: "cors",
       cache: "no-store",
@@ -194,8 +212,8 @@ export async function generateQuiz(settings: QuizSettings): Promise<GeneratedQui
     throw new Error(detail);
   }
 
-  const payload = (await response.json()) as GenerateQuizApiResponse;
-  return payload.quiz;
+  const payload = (await response.json()) as GenerateQuizApiResponse | RawGeneratedQuiz;
+  return normalizeGeneratedQuiz(readQuizPayload(payload), settings.difficulty);
 }
 
 export async function uploadQuizFile(file: File): Promise<UploadedQuizFile> {
@@ -236,7 +254,7 @@ async function uploadQuizFileRequest(apiBaseUrl: string, file: File) {
   formData.append("file", file);
 
   try {
-    return await fetch(`${apiBaseUrl}/api/quiz/upload`, {
+    return await fetch(`${apiBaseUrl}/api/pdf-quiz/upload`, {
       method: "POST",
       mode: "cors",
       cache: "no-store",
@@ -257,7 +275,7 @@ export async function generateQuizFromFile(options: GenerateFromFileOptions): Pr
   const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/quiz/generate-from-file`, {
+    const response = await fetch(`${apiBaseUrl}/api/pdf-quiz/generate`, {
       method: "POST",
       mode: "cors",
       cache: "no-store",
@@ -283,10 +301,11 @@ export async function generateQuizFromFile(options: GenerateFromFileOptions): Pr
       throw new Error(await readApiError(response, "File quiz generation failed. Please try again."));
     }
 
-    const payload = (await response.json()) as GenerateFromFileApiResponse;
+    const payload = (await response.json()) as GenerateFromFileApiResponse | RawGeneratedQuiz;
+    const meta = readMetaPayload(payload);
     return {
-      quiz: payload.quiz,
-      roomCode: payload.meta.room_code ?? null
+      quiz: normalizeGeneratedQuiz(readQuizPayload(payload), options.difficulty),
+      roomCode: typeof meta.room_code === "string" ? meta.room_code : null
     };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -373,10 +392,11 @@ export async function generateQuizFromUrl(options: GenerateFromUrlOptions): Prom
       throw new Error(await readApiError(response, "URL quiz generation failed. Please try again."));
     }
 
-    const payload = (await response.json()) as GenerateFromUrlApiResponse;
+    const payload = (await response.json()) as GenerateFromUrlApiResponse | RawGeneratedQuiz;
+    const meta = readMetaPayload(payload);
     return {
-      quiz: payload.quiz,
-      roomCode: payload.meta.room_code ?? null
+      quiz: normalizeGeneratedQuiz(readQuizPayload(payload), options.difficulty),
+      roomCode: typeof meta.room_code === "string" ? meta.room_code : null
     };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -398,4 +418,111 @@ async function readApiError(response: Response, fallback: string) {
   } catch {
     return `${fallback} Status ${response.status}.`;
   }
+}
+
+function normalizeGeneratedQuiz(value: unknown, fallbackDifficulty: QuizSettings["difficulty"]): GeneratedQuiz {
+  if (!isObject(value)) {
+    throw new Error("Quiz generation returned an invalid response.");
+  }
+
+  const rawQuiz = value as RawGeneratedQuiz;
+  const rawQuestions = Array.isArray(rawQuiz.questions) ? rawQuiz.questions : [];
+  const questions = rawQuestions
+    .map((item) => normalizeQuestion(item, fallbackDifficulty))
+    .filter((question): question is GeneratedQuiz["questions"][number] => Boolean(question));
+
+  if (!questions.length) {
+    throw new Error("Quiz generation returned no valid questions.");
+  }
+
+  return {
+    title: typeof rawQuiz.title === "string" && rawQuiz.title.trim() ? rawQuiz.title.trim() : "GENQUIZ Quiz",
+    questions
+  };
+}
+
+function readQuizPayload(payload: unknown): unknown {
+  if (isObject(payload) && "quiz" in payload) {
+    return payload.quiz;
+  }
+  return payload;
+}
+
+function readMetaPayload(payload: unknown): Record<string, unknown> {
+  if (isObject(payload) && "meta" in payload && isObject(payload.meta)) {
+    return payload.meta;
+  }
+  return {};
+}
+
+function normalizeQuestion(value: unknown, fallbackDifficulty: QuizSettings["difficulty"]): GeneratedQuiz["questions"][number] | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const item = value as RawQuizQuestion;
+  const choices = normalizeStringArray(item.choices ?? item.options).slice(0, 4);
+  const correctAnswer = stringValue(item.correct_answer ?? item.correctAnswer);
+  const question = stringValue(item.question);
+
+  if (!question || choices.length !== 4 || !correctAnswer) {
+    return null;
+  }
+
+  const matchedAnswer = choices.find((choice) => choice.toLowerCase() === correctAnswer.toLowerCase()) ?? correctAnswer;
+  if (!choices.some((choice) => choice.toLowerCase() === matchedAnswer.toLowerCase())) {
+    return null;
+  }
+
+  return {
+    question,
+    choices,
+    correct_answer: matchedAnswer,
+    explanation: stringValue(item.explanation) || undefined,
+    difficulty: normalizeDifficulty(item.difficulty, fallbackDifficulty),
+    time_limit: numberValue(item.time_limit ?? item.timeLimit),
+    points: numberValue(item.points) ?? 1
+  };
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const items: string[] = [];
+  for (const entry of value) {
+    const cleaned = stringValue(entry);
+    const key = cleaned.toLowerCase();
+    if (!cleaned || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    items.push(cleaned);
+  }
+  return items;
+}
+
+function normalizeDifficulty(value: unknown, fallback: QuizSettings["difficulty"]): QuizSettings["difficulty"] {
+  return value === "Easy" || value === "Medium" || value === "Hard" || value === "Very Hard" ? value : fallback;
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function numberValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

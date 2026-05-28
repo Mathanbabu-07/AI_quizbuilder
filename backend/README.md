@@ -17,15 +17,16 @@ Optional performance settings:
 
 ```env
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
-OPENROUTER_FILE_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
+OPENROUTER_MODEL=openai/gpt-oss-120b:free
+OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
 OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
-SCRAPEDO_API_TOKEN=
+SCRAPEDO_API_KEY=
 SCRAPEDO_BASE_URL=http://api.scrape.do/
 GENERATION_TIMEOUT_SECONDS=90
-MAX_UPLOAD_MB=25
+PDF_MAX_UPLOAD_MB=10
 MAX_URL_CONTENT_LENGTH=50000
 SUPABASE_URL=
+SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 FRONTEND_URL=
 FRONTEND_URLS=
@@ -43,6 +44,9 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ## API
 
 - `GET /health`
+- `POST /api/ai-quiz/generate`
+- `POST /api/pdf-quiz/upload`
+- `POST /api/pdf-quiz/generate`
 - `POST /api/quiz/generate`
 - `POST /api/quiz/upload`
 - `POST /api/quiz/generate-from-file`
@@ -54,8 +58,8 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - `POST /api/multiplayer/join-room`
 - `POST /api/multiplayer/start`
 
-The text generation endpoint calls OpenRouter using `OPENROUTER_MODEL`.
-The PDF/PPT file generation endpoint uses `OPENROUTER_FILE_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
+The text generation endpoint calls OpenRouter using `OPENROUTER_MODEL`, defaulting to `openai/gpt-oss-120b:free`.
+The PDF/PPT file generation endpoint uses `OPENROUTER_PDF_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
 The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
 Generation is capped by `GENERATION_TIMEOUT_SECONDS` and returns a clean timeout message if the provider is slow.
 

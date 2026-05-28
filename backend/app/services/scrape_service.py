@@ -18,7 +18,7 @@ class ScrapeDoService:
         if not self.settings.scrapedo_api_token:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Scrape.do API token is missing. Add SCRAPEDO_API_TOKEN in backend/.env and restart the backend.",
+                detail="Scrape.do API key is missing. Add SCRAPEDO_API_KEY in backend/.env and restart the backend.",
             )
 
         timeout_seconds = min(35.0, max(12.0, self.settings.generation_timeout_seconds / 3))
