@@ -92,6 +92,7 @@ async def health(request: Request):
         "ai_quiz_model": settings.openrouter_model,
         "pdf_quiz_model": settings.openrouter_file_model,
         "url_quiz_model": settings.openrouter_url_model,
+        "url_quiz_fallback_model": settings.openrouter_url_fallback_model,
         "url_quiz_extraction": "scrapedo",
     }
 

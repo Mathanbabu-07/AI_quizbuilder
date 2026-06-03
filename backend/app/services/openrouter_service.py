@@ -142,8 +142,16 @@ class OpenRouterService:
                     continue
                 if exc.response.status_code in {400, 401, 402, 403, 404}:
                     raise HTTPException(status_code=exc.response.status_code, detail=detail) from exc
-                if exc.response.status_code == 429 and attempt == 2:
-                    raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail) from exc
+                if exc.response.status_code in {408, 429, 500, 502, 503, 504} and attempt == 2:
+                    raise HTTPException(
+                        status_code=exc.response.status_code,
+                        detail=_provider_retry_exhausted_message(
+                            exc.response.status_code,
+                            generation_settings.source_type,
+                            model_name,
+                            detail,
+                        ),
+                    ) from exc
                 last_error = exc
             except (KeyError, TypeError, ValueError, QuizValidationError) as exc:
                 logger.warning(
@@ -171,7 +179,7 @@ class OpenRouterService:
             ) from last_error
 
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"AI returned an invalid quiz format. Try fewer questions or a cleaner {_source_label(generation_settings.source_type).lower()}.",
         ) from last_error
 
@@ -348,3 +356,24 @@ def _source_label(source_type: GenerationSource) -> str:
     if source_type == "url":
         return "URL"
     return "File"
+
+
+def _provider_retry_exhausted_message(
+    status_code: int,
+    source_type: GenerationSource,
+    model_name: str,
+    provider_detail: str,
+) -> str:
+    if status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+        return (
+            f"{_source_label(source_type)} quiz model is temporarily unavailable on OpenRouter "
+            f"({model_name}). Try again in a moment or use a different model."
+        )
+    if status_code == status.HTTP_429_TOO_MANY_REQUESTS:
+        return f"OpenRouter rate-limited {_source_label(source_type).lower()} quiz generation. Try again shortly."
+    if status_code in {500, 502, 504}:
+        return (
+            f"OpenRouter could not complete {_source_label(source_type).lower()} quiz generation right now "
+            f"({model_name}). Try again shortly."
+        )
+    return provider_detail

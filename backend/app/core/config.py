@@ -6,15 +6,16 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", encoding="utf-8-sig")
 
 
 class Settings(BaseModel):
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "openai/gpt-oss-120b:free"
+    openrouter_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
     openrouter_file_model: str = "nvidia/nemotron-3-nano-30b-a3b:free"
-    openrouter_url_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    openrouter_url_model: str = "openai/gpt-oss-120b:free"
+    openrouter_url_fallback_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
     scrapedo_api_token: str = ""
     scrapedo_base_url: str = "http://api.scrape.do/"
     frontend_url: str = ""
@@ -108,13 +109,17 @@ def get_settings() -> Settings:
     return Settings(
         openrouter_api_key=_secret_env("OPENROUTER_API_KEY"),
         openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/"),
-        openrouter_model=_openrouter_model_env("OPENROUTER_MODEL", "openai/gpt-oss-120b:free"),
+        openrouter_model=_openrouter_model_env("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free"),
         openrouter_file_model=_text_env_any(
             ("OPENROUTER_PDF_MODEL", "OPENROUTER_FILE_MODEL"),
             "nvidia/nemotron-3-nano-30b-a3b:free",
         ),
         openrouter_url_model=_openrouter_model_env(
             "OPENROUTER_URL_MODEL",
+            "openai/gpt-oss-120b:free",
+        ),
+        openrouter_url_fallback_model=_openrouter_model_env(
+            "OPENROUTER_URL_FALLBACK_MODEL",
             "nvidia/nemotron-3-super-120b-a12b:free",
         ),
         scrapedo_api_token=_secret_env_any("SCRAPEDO_API_KEY", "SCRAPEDO_API_TOKEN"),

@@ -80,16 +80,17 @@ async def generate_quiz_from_url(
         host_id=request.host_id,
         host_name=request.host_name,
     )
-    quiz = await generate_quiz_with_model(
-        settings.openrouter_url_model,
+    generation_settings = QuizGenerationSettings.from_file_request(
+        settings,
+        generator_request,
+        source_type="url",
+        source_url=cached.url,
+        source_title=cached.title,
+    )
+    quiz, model_used, fallback_reason = await _generate_url_quiz_with_fallback(
         cached.text,
-        QuizGenerationSettings.from_file_request(
-            settings,
-            generator_request,
-            source_type="url",
-            source_url=cached.url,
-            source_title=cached.title,
-        ),
+        generation_settings,
+        settings,
     )
     quiz_id = await supabase_service.save_generated_quiz_async(
         title=quiz.title,
@@ -108,7 +109,10 @@ async def generate_quiz_from_url(
     return GenerateFromUrlResponse(
         quiz=quiz,
         meta={
-            "model": settings.openrouter_url_model,
+            "model": model_used,
+            "primary_model": settings.openrouter_url_model,
+            "fallback_model": settings.openrouter_url_fallback_model,
+            "fallback_reason": fallback_reason,
             "source_type": "url",
             "source_url": cached.url,
             "source_title": cached.title,
@@ -173,6 +177,41 @@ def _build_url_instruction(user_prompt: str | None, url: str) -> str:
     if user_prompt and user_prompt.strip():
         return f"{base}\nHost instructions: {user_prompt.strip()}"
     return base
+
+
+async def _generate_url_quiz_with_fallback(
+    source_text: str,
+    generation_settings: QuizGenerationSettings,
+    settings: Settings,
+):
+    try:
+        quiz = await generate_quiz_with_model(
+            settings.openrouter_url_model,
+            source_text,
+            generation_settings,
+        )
+        return quiz, settings.openrouter_url_model, None
+    except HTTPException as exc:
+        if (
+            exc.status_code not in {status.HTTP_429_TOO_MANY_REQUESTS, status.HTTP_500_INTERNAL_SERVER_ERROR, status.HTTP_502_BAD_GATEWAY, status.HTTP_503_SERVICE_UNAVAILABLE, status.HTTP_504_GATEWAY_TIMEOUT}
+            or not settings.openrouter_url_fallback_model
+            or settings.openrouter_url_fallback_model == settings.openrouter_url_model
+        ):
+            raise
+
+        logger.warning(
+            "URL primary model failed; retrying fallback primary=%s fallback=%s status=%s detail=%s",
+            settings.openrouter_url_model,
+            settings.openrouter_url_fallback_model,
+            exc.status_code,
+            exc.detail,
+        )
+        quiz = await generate_quiz_with_model(
+            settings.openrouter_url_fallback_model,
+            source_text,
+            generation_settings,
+        )
+        return quiz, settings.openrouter_url_fallback_model, str(exc.detail)
 
 
 def _prune_cache() -> None:

@@ -11,10 +11,12 @@ services:
       - key: OPENROUTER_BASE_URL
         value: https://openrouter.ai/api/v1
       - key: OPENROUTER_MODEL
-        value: openai/gpt-oss-120b:free
+        value: nvidia/nemotron-3-super-120b-a12b:free
       - key: OPENROUTER_PDF_MODEL
         value: nvidia/nemotron-3-nano-30b-a3b:free
       - key: OPENROUTER_URL_MODEL
+        value: openai/gpt-oss-120b:free
+      - key: OPENROUTER_URL_FALLBACK_MODEL
         value: nvidia/nemotron-3-super-120b-a12b:free
       - key: SCRAPEDO_API_KEY
         sync: false

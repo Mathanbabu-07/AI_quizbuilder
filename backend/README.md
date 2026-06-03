@@ -17,9 +17,10 @@ Optional performance settings:
 
 ```env
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_MODEL=openai/gpt-oss-120b:free
+OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
-OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+OPENROUTER_URL_MODEL=openai/gpt-oss-120b:free
+OPENROUTER_URL_FALLBACK_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 SCRAPEDO_API_KEY=
 SCRAPEDO_BASE_URL=http://api.scrape.do/
 GENERATION_TIMEOUT_SECONDS=90
@@ -58,9 +59,9 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - `POST /api/multiplayer/join-room`
 - `POST /api/multiplayer/start`
 
-The text generation endpoint calls OpenRouter using `OPENROUTER_MODEL`, defaulting to `openai/gpt-oss-120b:free`.
+The text generation endpoint calls OpenRouter using `OPENROUTER_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
 The PDF/PPT file generation endpoint uses `OPENROUTER_PDF_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
-The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
+The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `openai/gpt-oss-120b:free`. If OpenRouter reports the primary URL model is temporarily unavailable, it retries with `OPENROUTER_URL_FALLBACK_MODEL`.
 Generation is capped by `GENERATION_TIMEOUT_SECONDS` and returns a clean timeout message if the provider is slow.
 
 PDF upload extraction uses PyMuPDF. PPTX extraction uses python-pptx. Run `supabase/ai_file_quiz_schema.sql`
