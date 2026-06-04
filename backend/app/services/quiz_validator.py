@@ -1,3 +1,4 @@
+import random
 import re
 from typing import Any
 
@@ -17,6 +18,7 @@ def validate_quiz_payload(
     difficulty: Difficulty,
     time_per_question: int,
     points_per_question: int,
+    shuffle_options: bool = False,
 ) -> GeneratedQuiz:
     payload = _normalize_quiz_payload(
         payload,
@@ -24,6 +26,7 @@ def validate_quiz_payload(
         difficulty=difficulty,
         time_per_question=time_per_question,
         points_per_question=points_per_question,
+        shuffle_options=shuffle_options,
     )
     try:
         quiz = GeneratedQuiz.model_validate(payload)
@@ -56,6 +59,7 @@ def _normalize_quiz_payload(
     difficulty: Difficulty,
     time_per_question: int,
     points_per_question: int,
+    shuffle_options: bool,
 ) -> dict[str, Any]:
     if "quiz" in payload and isinstance(payload["quiz"], dict):
         payload = payload["quiz"]
@@ -102,6 +106,8 @@ def _normalize_quiz_payload(
 
         if len(options) != 4 or answer not in options:
             continue
+        if shuffle_options:
+            options = _shuffle_options(options)
 
         normalized_questions.append(
             {
@@ -172,6 +178,12 @@ def _trim_options_keeping_answer(options: list[str], answer: str) -> list[str]:
         selected = [answer, *[option for option in options if option != answer]]
         return selected[:4]
     return options[:3] + [answer]
+
+
+def _shuffle_options(options: list[str]) -> list[str]:
+    shuffled = options[:]
+    random.shuffle(shuffled)
+    return shuffled
 
 
 def _strip_option_label(value: str) -> str:

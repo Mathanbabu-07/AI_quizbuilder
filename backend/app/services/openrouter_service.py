@@ -193,6 +193,7 @@ class OpenRouterService:
             difficulty=settings.difficulty,
             time_per_question=settings.time_per_question,
             points_per_question=settings.points_per_question,
+            shuffle_options=True,
         )
 
     def _headers(self) -> dict[str, str]:
