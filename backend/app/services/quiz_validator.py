@@ -52,6 +52,25 @@ def validate_quiz_payload(
     return quiz
 
 
+def normalize_quiz_payload(
+    payload: dict[str, Any],
+    *,
+    question_count: int,
+    difficulty: Difficulty,
+    time_per_question: int,
+    points_per_question: int,
+    shuffle_options: bool = False,
+) -> dict[str, Any]:
+    return _normalize_quiz_payload(
+        payload,
+        question_count=question_count,
+        difficulty=difficulty,
+        time_per_question=time_per_question,
+        points_per_question=points_per_question,
+        shuffle_options=shuffle_options,
+    )
+
+
 def _normalize_quiz_payload(
     payload: dict[str, Any],
     *,

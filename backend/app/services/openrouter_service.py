@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 import httpx
@@ -10,7 +10,7 @@ from fastapi import HTTPException, status
 
 from app.core.config import Settings
 from app.models.quiz import Difficulty, GenerateFromFileRequest, GenerateQuizRequest, GeneratedQuiz
-from app.services.quiz_validator import QuizValidationError, validate_quiz_payload
+from app.services.quiz_validator import QuizValidationError, normalize_quiz_payload, validate_quiz_payload
 from app.utils.json_tools import extract_json_object
 
 logger = logging.getLogger("genquiz.openrouter")
@@ -146,7 +146,28 @@ class OpenRouterService:
                 client = await _get_openrouter_client()
                 response = await client.post(url, json=payload, headers=headers, timeout=timeout)
                 response.raise_for_status()
-                quiz = self._parse_response(response.json(), generation_settings)
+                parsed_payload = self._extract_response_payload(response.json())
+                try:
+                    quiz = self._validate_parsed_payload(parsed_payload, generation_settings)
+                except QuizValidationError as exc:
+                    completed_quiz = await self._try_complete_short_prompt_quiz(
+                        model_name=model_name,
+                        original_content=compact_content,
+                        parsed_payload=parsed_payload,
+                        generation_settings=generation_settings,
+                        headers=headers,
+                        url=url,
+                        deadline=deadline,
+                    )
+                    if completed_quiz:
+                        logger.info(
+                            "OpenRouter short AI quiz repaired model=%s expected=%s",
+                            model_name,
+                            generation_settings.question_count,
+                        )
+                        _set_cached_quiz(cache_key, completed_quiz)
+                        return completed_quiz
+                    raise exc
                 _set_cached_quiz(cache_key, quiz)
                 return quiz
             except httpx.TimeoutException as exc:
@@ -205,10 +226,133 @@ class OpenRouterService:
             detail=f"AI returned an invalid quiz format. Try fewer questions or a cleaner {_source_label(generation_settings.source_type).lower()}.",
         ) from last_error
 
+    async def _try_complete_short_prompt_quiz(
+        self,
+        *,
+        model_name: str,
+        original_content: str,
+        parsed_payload: dict[str, Any],
+        generation_settings: QuizGenerationSettings,
+        headers: dict[str, str],
+        url: str,
+        deadline: float,
+    ) -> GeneratedQuiz | None:
+        if generation_settings.source_type != "prompt":
+            return None
+
+        partial_payload = normalize_quiz_payload(
+            parsed_payload,
+            question_count=generation_settings.question_count,
+            difficulty=generation_settings.difficulty,
+            time_per_question=generation_settings.time_per_question,
+            points_per_question=generation_settings.points_per_question,
+            shuffle_options=True,
+        )
+        partial_questions = partial_payload.get("questions") or []
+        if not isinstance(partial_questions, list):
+            return None
+
+        missing_count = generation_settings.question_count - len(partial_questions)
+        if missing_count <= 0 or not partial_questions:
+            return None
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 8.0:
+            return None
+
+        existing_question_text = "\n".join(
+            f"- {question.get('question', '')}" for question in partial_questions if isinstance(question, dict)
+        )
+        missing_label = "questions" if missing_count != 1 else "question"
+        repair_content = f"""
+Original quiz topic:
+{original_content}
+
+Existing accepted questions. Do not repeat or rephrase these:
+{existing_question_text}
+
+Generate exactly {missing_count} additional unique multiple-choice {missing_label} to complete the quiz.
+""".strip()
+        repair_settings = replace(
+            generation_settings,
+            question_count=missing_count,
+            user_prompt=(
+                "Return only the missing question JSON. Do not include existing questions. "
+                "Use the same difficulty, timeLimit, points, and answer quality."
+            ),
+        )
+        payload: dict[str, Any] = {
+            "model": model_name,
+            "messages": _build_generation_messages(repair_content, repair_settings, repair=True),
+            "temperature": 0.08,
+            "top_p": 0.78,
+            "max_tokens": _max_tokens(missing_count),
+            "response_format": {"type": "json_object"},
+        }
+        last_error: Exception | None = None
+
+        for attempt in range(2):
+            remaining = deadline - time.monotonic()
+            if remaining <= 4.0:
+                break
+
+            try:
+                timeout = httpx.Timeout(max(4.0, remaining - 0.5), connect=min(5.0, max(2.0, remaining / 4)))
+                client = await _get_openrouter_client()
+                response = await client.post(url, json=payload, headers=headers, timeout=timeout)
+                response.raise_for_status()
+                missing_payload = self._extract_response_payload(response.json())
+                normalized_missing = normalize_quiz_payload(
+                    missing_payload,
+                    question_count=missing_count,
+                    difficulty=generation_settings.difficulty,
+                    time_per_question=generation_settings.time_per_question,
+                    points_per_question=generation_settings.points_per_question,
+                    shuffle_options=True,
+                )
+                merged_payload = {
+                    "title": partial_payload.get("title") or "GENQUIZ Quiz",
+                    "questions": [
+                        *partial_questions,
+                        *(normalized_missing.get("questions") or []),
+                    ],
+                }
+                return validate_quiz_payload(
+                    merged_payload,
+                    question_count=generation_settings.question_count,
+                    difficulty=generation_settings.difficulty,
+                    time_per_question=generation_settings.time_per_question,
+                    points_per_question=generation_settings.points_per_question,
+                    shuffle_options=False,
+                )
+            except (httpx.HTTPError, KeyError, TypeError, ValueError, QuizValidationError) as exc:
+                last_error = exc
+                logger.warning(
+                    "OpenRouter short AI quiz repair failed attempt=%s model=%s missing=%s: %s",
+                    attempt + 1,
+                    model_name,
+                    missing_count,
+                    exc,
+                )
+                payload["messages"] = _build_generation_messages(repair_content, repair_settings, repair=True)
+
+            if attempt == 0 and deadline - time.monotonic() > 5.0:
+                await asyncio.sleep(0.2)
+
+        if last_error:
+            logger.warning("OpenRouter short AI quiz repair exhausted model=%s: %s", model_name, last_error)
+        return None
+
     def _parse_response(self, data: dict[str, Any], settings: QuizGenerationSettings) -> GeneratedQuiz:
+        parsed = self._extract_response_payload(data)
+        return self._validate_parsed_payload(parsed, settings)
+
+    def _extract_response_payload(self, data: dict[str, Any]) -> dict[str, Any]:
         message = data["choices"][0]["message"]
         content = _coerce_message_content(message.get("content"))
-        parsed = extract_json_object(content)
+        return extract_json_object(content)
+
+    def _validate_parsed_payload(self, parsed: dict[str, Any], settings: QuizGenerationSettings) -> GeneratedQuiz:
         return validate_quiz_payload(
             parsed,
             question_count=settings.question_count,
@@ -271,6 +415,7 @@ Host instructions:
 
 Rules:
 - Generate exactly {settings.question_count} questions.
+- The questions array must contain exactly {settings.question_count} objects, never fewer.
 - Difficulty must be {settings.difficulty}.
 - Each question must have exactly 4 unique options.
 - correctAnswer must exactly match one option.
