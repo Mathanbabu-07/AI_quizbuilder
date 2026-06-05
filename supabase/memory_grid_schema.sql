@@ -17,7 +17,7 @@ create table public.memory_grid_sessions (
   current_round integer not null default 1,
   completed_rounds integer not null default 0,
   total_score integer not null default 0,
-  hearts_remaining integer not null default 4,
+  hearts_remaining integer not null default 5,
   total_accuracy numeric(5,2) not null default 100,
   completion_time_ms integer not null default 0,
   result text not null default 'active',
@@ -29,7 +29,7 @@ create table public.memory_grid_sessions (
   constraint memory_grid_sessions_current_round_check check (current_round >= 1 and current_round <= 5),
   constraint memory_grid_sessions_completed_rounds_check check (completed_rounds >= 0 and completed_rounds <= 5),
   constraint memory_grid_sessions_total_score_check check (total_score >= 0 and total_score <= 8500),
-  constraint memory_grid_sessions_hearts_check check (hearts_remaining >= 0 and hearts_remaining <= 4),
+  constraint memory_grid_sessions_hearts_check check (hearts_remaining >= 0 and hearts_remaining <= 5),
   constraint memory_grid_sessions_accuracy_check check (total_accuracy >= 0 and total_accuracy <= 100),
   constraint memory_grid_sessions_completion_time_check check (completion_time_ms >= 0 and completion_time_ms <= 1200000),
   constraint memory_grid_sessions_result_check check (result in ('active', 'victory', 'game_over', 'abandoned')),
@@ -44,7 +44,7 @@ create table public.memory_grid_rounds (
   correct_targets integer not null default 0,
   wrong_attempts integer not null default 0,
   total_selections integer not null default 0,
-  remaining_hearts integer not null default 4,
+  remaining_hearts integer not null default 5,
   duration_ms integer not null default 0,
   completed boolean not null default false,
   grid_rows integer not null,
@@ -59,11 +59,11 @@ create table public.memory_grid_rounds (
   constraint memory_grid_rounds_correct_check check (correct_targets >= 0 and correct_targets <= 6),
   constraint memory_grid_rounds_wrong_check check (wrong_attempts >= 0 and wrong_attempts <= 30),
   constraint memory_grid_rounds_selections_check check (total_selections >= 0 and total_selections <= 50),
-  constraint memory_grid_rounds_hearts_check check (remaining_hearts >= 0 and remaining_hearts <= 4),
+  constraint memory_grid_rounds_hearts_check check (remaining_hearts >= 0 and remaining_hearts <= 5),
   constraint memory_grid_rounds_duration_check check (duration_ms >= 0 and duration_ms <= 600000),
   constraint memory_grid_rounds_rows_check check (grid_rows >= 2 and grid_rows <= 6),
   constraint memory_grid_rounds_cols_check check (grid_cols >= 2 and grid_cols <= 6),
-  constraint memory_grid_rounds_memorize_check check (memorize_seconds >= 5 and memorize_seconds <= 10),
+  constraint memory_grid_rounds_memorize_check check (memorize_seconds >= 5 and memorize_seconds <= 15),
   constraint memory_grid_rounds_target_check check (target_count >= 3 and target_count <= 6)
 );
 
@@ -77,8 +77,8 @@ create table public.memory_grid_lifeline_events (
   reason text not null,
   created_at timestamp with time zone not null default now(),
   constraint memory_grid_lifeline_round_check check (round_number >= 1 and round_number <= 5),
-  constraint memory_grid_lifeline_previous_check check (previous_hearts >= 0 and previous_hearts <= 4),
-  constraint memory_grid_lifeline_remaining_check check (remaining_hearts >= 0 and remaining_hearts <= 4),
+  constraint memory_grid_lifeline_previous_check check (previous_hearts >= 0 and previous_hearts <= 5),
+  constraint memory_grid_lifeline_remaining_check check (remaining_hearts >= 0 and remaining_hearts <= 5),
   constraint memory_grid_lifeline_wrong_check check (wrong_attempts >= 0 and wrong_attempts <= 30),
   constraint memory_grid_lifeline_reason_check check (reason in ('wrong_selection', 'timeout'))
 );
@@ -98,7 +98,7 @@ create table public.memory_grid_leaderboard (
   constraint memory_grid_leaderboard_session_unique unique (session_id),
   constraint memory_grid_leaderboard_score_check check (total_score >= 0 and total_score <= 8500),
   constraint memory_grid_leaderboard_rounds_check check (completed_rounds >= 0 and completed_rounds <= 5),
-  constraint memory_grid_leaderboard_hearts_check check (hearts_remaining >= 0 and hearts_remaining <= 4),
+  constraint memory_grid_leaderboard_hearts_check check (hearts_remaining >= 0 and hearts_remaining <= 5),
   constraint memory_grid_leaderboard_accuracy_check check (total_accuracy >= 0 and total_accuracy <= 100),
   constraint memory_grid_leaderboard_completion_time_check check (completion_time_ms >= 0 and completion_time_ms <= 1200000),
   constraint memory_grid_leaderboard_medal_check check (medal in ('gold', 'silver', 'bronze', 'none'))

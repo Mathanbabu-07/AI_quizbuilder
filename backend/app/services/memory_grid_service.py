@@ -20,13 +20,13 @@ from app.models.memory_grid import (
 
 logger = logging.getLogger("genquiz.memory_grid")
 
-MAX_HEARTS = 4
+MAX_HEARTS = 5
 ROUND_CONFIGS: dict[int, dict[str, int]] = {
     1: {"rows": 2, "cols": 2, "memorize_seconds": 10, "target_count": 3, "find_seconds": 30},
-    2: {"rows": 3, "cols": 3, "memorize_seconds": 10, "target_count": 3, "find_seconds": 30},
-    3: {"rows": 3, "cols": 3, "memorize_seconds": 10, "target_count": 3, "find_seconds": 30},
-    4: {"rows": 4, "cols": 3, "memorize_seconds": 10, "target_count": 4, "find_seconds": 30},
-    5: {"rows": 4, "cols": 4, "memorize_seconds": 10, "target_count": 4, "find_seconds": 30},
+    2: {"rows": 3, "cols": 3, "memorize_seconds": 15, "target_count": 3, "find_seconds": 30},
+    3: {"rows": 3, "cols": 3, "memorize_seconds": 15, "target_count": 3, "find_seconds": 30},
+    4: {"rows": 4, "cols": 3, "memorize_seconds": 15, "target_count": 4, "find_seconds": 30},
+    5: {"rows": 4, "cols": 4, "memorize_seconds": 15, "target_count": 4, "find_seconds": 30},
 }
 
 

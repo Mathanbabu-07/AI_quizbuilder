@@ -45,12 +45,12 @@ class MemoryGridRoundProgressRequest(BaseModel):
     correct_targets: int = Field(..., ge=0, le=6)
     wrong_attempts: int = Field(..., ge=0, le=30)
     total_selections: int = Field(..., ge=0, le=50)
-    remaining_hearts: int = Field(..., ge=0, le=4)
+    remaining_hearts: int = Field(..., ge=0, le=5)
     duration_ms: int = Field(..., ge=0, le=600_000)
     completed: bool
     grid_rows: int = Field(..., ge=2, le=6)
     grid_cols: int = Field(..., ge=2, le=6)
-    memorize_seconds: int = Field(..., ge=5, le=10)
+    memorize_seconds: int = Field(..., ge=5, le=15)
     target_count: int = Field(..., ge=3, le=6)
 
 
@@ -66,7 +66,7 @@ class MemoryGridLifelineUpdateRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=80)
     player_id: str = Field(..., min_length=1, max_length=120)
     round_number: int = Field(..., ge=1, le=5)
-    remaining_hearts: int = Field(..., ge=0, le=4)
+    remaining_hearts: int = Field(..., ge=0, le=5)
     wrong_attempts: int = Field(..., ge=0, le=30)
     reason: MemoryGridLifelineReason
 
@@ -81,7 +81,7 @@ class MemoryGridCompleteRequest(BaseModel):
     player_id: str = Field(..., min_length=1, max_length=120)
     reported_total_score: int = Field(default=0, ge=0, le=8500)
     result: MemoryGridResult
-    remaining_hearts: int = Field(..., ge=0, le=4)
+    remaining_hearts: int = Field(..., ge=0, le=5)
     total_accuracy: float = Field(default=0, ge=0, le=100)
     completion_time_ms: int = Field(default=0, ge=0, le=1_200_000)
 

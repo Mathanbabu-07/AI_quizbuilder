@@ -29,13 +29,13 @@ export type MemoryCardAsset = {
 
 export const MEMORY_GRID_ROUNDS: MemoryGridRoundConfig[] = [
   { round: 1, title: "Focus Bloom", rows: 2, cols: 2, memorizeSeconds: 10, targetCount: 3, findSeconds: 30 },
-  { round: 2, title: "Pattern Rise", rows: 3, cols: 3, memorizeSeconds: 10, targetCount: 3, findSeconds: 30 },
-  { round: 3, title: "Recall Drift", rows: 3, cols: 3, memorizeSeconds: 10, targetCount: 3, findSeconds: 30 },
-  { round: 4, title: "Deep Focus", rows: 4, cols: 3, memorizeSeconds: 10, targetCount: 4, findSeconds: 30 },
-  { round: 5, title: "Memory Crown", rows: 4, cols: 4, memorizeSeconds: 10, targetCount: 4, findSeconds: 30 }
+  { round: 2, title: "Pattern Rise", rows: 3, cols: 3, memorizeSeconds: 15, targetCount: 3, findSeconds: 30 },
+  { round: 3, title: "Recall Drift", rows: 3, cols: 3, memorizeSeconds: 15, targetCount: 3, findSeconds: 30 },
+  { round: 4, title: "Deep Focus", rows: 4, cols: 3, memorizeSeconds: 15, targetCount: 4, findSeconds: 30 },
+  { round: 5, title: "Memory Crown", rows: 4, cols: 4, memorizeSeconds: 15, targetCount: 4, findSeconds: 30 }
 ];
 
-export const MAX_MEMORY_GRID_HEARTS = 4;
+export const MAX_MEMORY_GRID_HEARTS = 5;
 
 export const MEMORY_CARD_ASSETS: MemoryCardAsset[] = [
   {
