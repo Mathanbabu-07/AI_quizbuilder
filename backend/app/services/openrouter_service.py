@@ -1,9 +1,8 @@
 import asyncio
 import hashlib
-import json
 import logging
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Literal
 
 import httpx
@@ -122,15 +121,6 @@ class OpenRouterService:
             logger.info("OpenRouter quiz cache hit model=%s source=%s", model_name, generation_settings.source_type)
             return cached
 
-        if generation_settings.source_type == "prompt" and generation_settings.question_count > 10:
-            quiz = await self._generate_prompt_batches(
-                model_name=model_name,
-                content=compact_content,
-                generation_settings=generation_settings,
-            )
-            _set_cached_quiz(cache_key, quiz)
-            return quiz
-
         payload: dict[str, Any] = {
             "model": model_name,
             "messages": _build_generation_messages(compact_content, generation_settings),
@@ -139,8 +129,6 @@ class OpenRouterService:
             "max_tokens": _max_tokens(generation_settings.question_count),
             "response_format": {"type": "json_object"},
         }
-        if generation_settings.source_type == "prompt":
-            payload["stream"] = True
 
         headers = self._headers()
         url = f"{self.settings.openrouter_base_url}/chat/completions"
@@ -156,13 +144,9 @@ class OpenRouterService:
                 payload["temperature"] = _retry_temperature(generation_settings.source_type, attempt)
                 timeout = httpx.Timeout(max(5.0, remaining - 0.5), connect=min(6.0, max(2.0, remaining / 4)))
                 client = await _get_openrouter_client()
-                if generation_settings.source_type == "prompt":
-                    content_text = await self._post_streaming_content(client, url, payload, headers, timeout)
-                    quiz = self._parse_content(content_text, generation_settings)
-                else:
-                    response = await client.post(url, json=payload, headers=headers, timeout=timeout)
-                    response.raise_for_status()
-                    quiz = self._parse_response(response.json(), generation_settings)
+                response = await client.post(url, json=payload, headers=headers, timeout=timeout)
+                response.raise_for_status()
+                quiz = self._parse_response(response.json(), generation_settings)
                 _set_cached_quiz(cache_key, quiz)
                 return quiz
             except httpx.TimeoutException as exc:
@@ -221,178 +205,9 @@ class OpenRouterService:
             detail=f"AI returned an invalid quiz format. Try fewer questions or a cleaner {_source_label(generation_settings.source_type).lower()}.",
         ) from last_error
 
-    async def _generate_prompt_batches(
-        self,
-        *,
-        model_name: str,
-        content: str,
-        generation_settings: QuizGenerationSettings,
-    ) -> GeneratedQuiz:
-        batch_sizes = _batch_sizes(generation_settings.question_count, 10)
-        ranges: list[tuple[int, int, int]] = []
-        start = 1
-        for size in batch_sizes:
-            end = start + size - 1
-            ranges.append((start, end, size))
-            start = end + 1
-
-        async def generate_batch(batch_index: int, start_index: int, end_index: int, batch_size: int) -> GeneratedQuiz:
-            batch_settings = replace(
-                generation_settings,
-                question_count=batch_size,
-                user_prompt=(
-                    f"Generate questions {start_index}-{end_index} of {generation_settings.question_count}. "
-                    "Keep this batch distinct from other likely batches. Return only this batch."
-                ),
-            )
-            batch_content = (
-                f"{content}\n\n"
-                f"Batch {batch_index + 1}/{len(ranges)}: create exactly {batch_size} unique questions "
-                f"for positions {start_index}-{end_index}."
-            )
-            return await self.generate_quiz_with_model(
-                model_name=model_name,
-                content=batch_content,
-                generation_settings=batch_settings,
-            )
-
-        try:
-            batch_results = await asyncio.gather(
-                *[
-                    generate_batch(batch_index, start_index, end_index, batch_size)
-                    for batch_index, (start_index, end_index, batch_size) in enumerate(ranges)
-                ],
-                return_exceptions=True,
-            )
-            batch_errors = [result for result in batch_results if isinstance(result, Exception)]
-            if batch_errors:
-                raise batch_errors[0]
-            batch_quizzes = [result for result in batch_results if isinstance(result, GeneratedQuiz)]
-            return _merge_prompt_batches(batch_quizzes, generation_settings)
-        except (HTTPException, QuizValidationError, ValueError) as exc:
-            logger.warning(
-                "Parallel AI quiz generation failed; falling back to single streamed request count=%s error=%s",
-                generation_settings.question_count,
-                exc,
-            )
-            fallback_settings = replace(
-                generation_settings,
-                user_prompt="Generate the full quiz in one pass. Keep every question unique.",
-            )
-            return await self._generate_streamed_prompt_single(
-                model_name=model_name,
-                content=content,
-                generation_settings=fallback_settings,
-            )
-
-    async def _generate_streamed_prompt_single(
-        self,
-        *,
-        model_name: str,
-        content: str,
-        generation_settings: QuizGenerationSettings,
-    ) -> GeneratedQuiz:
-        payload: dict[str, Any] = {
-            "model": model_name,
-            "messages": _build_generation_messages(content, generation_settings),
-            "temperature": _initial_temperature(generation_settings.source_type),
-            "top_p": 0.82,
-            "max_tokens": _max_tokens(generation_settings.question_count),
-            "response_format": {"type": "json_object"},
-            "stream": True,
-        }
-        headers = self._headers()
-        url = f"{self.settings.openrouter_base_url}/chat/completions"
-        deadline = time.monotonic() + min(150.0, max(30.0, self.settings.generation_timeout_seconds))
-        last_error: Exception | None = None
-
-        for attempt in range(3):
-            remaining = deadline - time.monotonic()
-            if remaining <= 1.0:
-                break
-
-            try:
-                payload["temperature"] = _retry_temperature(generation_settings.source_type, attempt)
-                timeout = httpx.Timeout(max(5.0, remaining - 0.5), connect=min(6.0, max(2.0, remaining / 4)))
-                client = await _get_openrouter_client()
-                content_text = await self._post_streaming_content(client, url, payload, headers, timeout)
-                return self._parse_content(content_text, generation_settings)
-            except httpx.TimeoutException as exc:
-                last_error = exc
-            except httpx.HTTPStatusError as exc:
-                detail = self._openrouter_error_message(exc.response)
-                if (
-                    exc.response.status_code == status.HTTP_400_BAD_REQUEST
-                    and "response_format" in detail.casefold()
-                    and "response_format" in payload
-                ):
-                    payload.pop("response_format", None)
-                    last_error = exc
-                    continue
-                if exc.response.status_code in {400, 401, 402, 403, 404}:
-                    raise HTTPException(status_code=exc.response.status_code, detail=detail) from exc
-                last_error = exc
-            except (KeyError, TypeError, ValueError, QuizValidationError) as exc:
-                payload["messages"] = _build_generation_messages(content, generation_settings, repair=True)
-                last_error = exc
-
-            if attempt < 2:
-                await asyncio.sleep(0.3 + attempt * 0.2)
-
-        if isinstance(last_error, httpx.TimeoutException) or (deadline - time.monotonic()) <= 1.0:
-            raise HTTPException(
-                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="AI quiz generation took too long. Try fewer questions or a simpler prompt.",
-            ) from last_error
-
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="AI returned an invalid quiz format. Try fewer questions or a clearer prompt.",
-        ) from last_error
-
-    async def _post_streaming_content(
-        self,
-        client: httpx.AsyncClient,
-        url: str,
-        payload: dict[str, Any],
-        headers: dict[str, str],
-        timeout: httpx.Timeout,
-    ) -> str:
-        chunks: list[str] = []
-        async with client.stream("POST", url, json=payload, headers=headers, timeout=timeout) as response:
-            response.raise_for_status()
-            async for line in response.aiter_lines():
-                if not line:
-                    continue
-                if line.startswith(":"):
-                    continue
-                if not line.startswith("data:"):
-                    continue
-
-                data = line.removeprefix("data:").strip()
-                if data == "[DONE]":
-                    break
-
-                try:
-                    event = json.loads(data)
-                except ValueError:
-                    continue
-
-                delta = ((event.get("choices") or [{}])[0].get("delta") or {}).get("content")
-                if delta:
-                    chunks.append(_coerce_message_content(delta))
-
-        content = "".join(chunks).strip()
-        if not content:
-            raise ValueError("OpenRouter streamed response content was empty.")
-        return content
-
     def _parse_response(self, data: dict[str, Any], settings: QuizGenerationSettings) -> GeneratedQuiz:
         message = data["choices"][0]["message"]
         content = _coerce_message_content(message.get("content"))
-        return self._parse_content(content, settings)
-
-    def _parse_content(self, content: str, settings: QuizGenerationSettings) -> GeneratedQuiz:
         parsed = extract_json_object(content)
         return validate_quiz_payload(
             parsed,
@@ -431,33 +246,6 @@ def _build_generation_messages(
     *,
     repair: bool = False,
 ) -> list[dict[str, str]]:
-    if settings.source_type == "prompt":
-        batch_instruction = f"\nBatch instruction: {settings.user_prompt.strip()}" if settings.user_prompt else ""
-        repair_instruction = (
-            "\nRepair invalid output: return only valid JSON with the exact schema and counts."
-            if repair
-            else ""
-        )
-        user = f"""
-Topic:
-{content}
-{batch_instruction}
-
-Generate exactly {settings.question_count} {settings.difficulty} multiple-choice questions.
-Each question needs 4 unique options, one exact correctAnswer, one short explanation, timeLimit {settings.time_per_question}, points {settings.points_per_question}.
-Avoid duplicate questions and obvious distractors. Return JSON only:
-{{"title":"Short quiz title","questions":[{{"question":"...","options":["A","B","C","D"],"correctAnswer":"A","explanation":"...","timeLimit":{settings.time_per_question},"points":{settings.points_per_question}}}]}}
-{repair_instruction}
-""".strip()
-
-        return [
-            {
-                "role": "system",
-                "content": "You are GENQUIZ. Return one valid JSON object only; no markdown or extra prose.",
-            },
-            {"role": "user", "content": user},
-        ]
-
     system = (
         "You are GENQUIZ, an expert multiple-choice quiz generator. "
         "Return exactly one valid JSON object. Do not use markdown, code fences, comments, trailing commas, or extra prose. "
@@ -581,36 +369,6 @@ def _retry_temperature(source_type: GenerationSource, attempt: int) -> float:
 
 def _max_tokens(question_count: int) -> int:
     return min(9000, max(1800, 760 + question_count * 230))
-
-
-def _batch_sizes(total: int, size: int) -> list[int]:
-    batches: list[int] = []
-    remaining = total
-    while remaining > 0:
-        next_size = min(size, remaining)
-        batches.append(next_size)
-        remaining -= next_size
-    return batches
-
-
-def _merge_prompt_batches(batch_quizzes: list[GeneratedQuiz], settings: QuizGenerationSettings) -> GeneratedQuiz:
-    questions: list[dict[str, Any]] = []
-    for quiz in batch_quizzes:
-        for question in quiz.questions:
-            questions.append(question.model_dump(by_alias=True))
-
-    payload = {
-        "title": batch_quizzes[0].title if batch_quizzes else "GENQUIZ Quiz",
-        "questions": questions,
-    }
-    return validate_quiz_payload(
-        payload,
-        question_count=settings.question_count,
-        difficulty=settings.difficulty,
-        time_per_question=settings.time_per_question,
-        points_per_question=settings.points_per_question,
-        shuffle_options=False,
-    )
 
 
 async def _get_openrouter_client() -> httpx.AsyncClient:
