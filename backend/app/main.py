@@ -16,6 +16,7 @@ from app.api.pdf_quiz import router as pdf_quiz_router
 from app.api.quiz import router as quiz_router
 from app.api.url_quiz import router as url_quiz_router
 from app.core.config import get_settings
+from app.services.openrouter_service import close_openrouter_client
 from app.services.supabase_client import get_supabase_diagnostics
 from app.sockets.server import sio
 
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
     logger.info("CORS origins=%s regex=%s", settings.frontend_urls, settings.cors_allow_origin_regex)
     logger.info("Supabase diagnostics: %s", get_supabase_diagnostics())
     yield
+    await close_openrouter_client()
 
 
 fastapi_app = FastAPI(title=settings.app_name, lifespan=lifespan)

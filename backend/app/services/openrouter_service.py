@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import logging
 import time
 from dataclasses import dataclass
@@ -15,6 +16,11 @@ from app.utils.json_tools import extract_json_object
 logger = logging.getLogger("genquiz.openrouter")
 
 GenerationSource = Literal["prompt", "pdf", "url", "file"]
+_CACHE_TTL_SECONDS = 10 * 60
+_CACHE_MAX_ITEMS = 96
+_client_lock = asyncio.Lock()
+_client: httpx.AsyncClient | None = None
+_response_cache: dict[str, tuple[float, GeneratedQuiz]] = {}
 
 
 @dataclass(frozen=True)
@@ -77,6 +83,13 @@ async def generate_quiz_with_model(
     )
 
 
+async def close_openrouter_client() -> None:
+    global _client
+    if _client and not _client.is_closed:
+        await _client.aclose()
+    _client = None
+
+
 @dataclass
 class OpenRouterService:
     settings: Settings
@@ -114,6 +127,11 @@ class OpenRouterService:
         url = f"{self.settings.openrouter_base_url}/chat/completions"
         deadline = time.monotonic() + min(150.0, max(30.0, self.settings.generation_timeout_seconds))
         last_error: Exception | None = None
+        cache_key = _cache_key(model_name, compact_content, generation_settings)
+        cached = _get_cached_quiz(cache_key)
+        if cached:
+            logger.info("OpenRouter quiz cache hit model=%s source=%s", model_name, generation_settings.source_type)
+            return cached
 
         for attempt in range(3):
             remaining = deadline - time.monotonic()
@@ -123,10 +141,12 @@ class OpenRouterService:
             try:
                 payload["temperature"] = _retry_temperature(generation_settings.source_type, attempt)
                 timeout = httpx.Timeout(max(5.0, remaining - 0.5), connect=min(6.0, max(2.0, remaining / 4)))
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.post(url, json=payload, headers=headers)
+                client = await _get_openrouter_client()
+                response = await client.post(url, json=payload, headers=headers, timeout=timeout)
                 response.raise_for_status()
-                return self._parse_response(response.json(), generation_settings)
+                quiz = self._parse_response(response.json(), generation_settings)
+                _set_cached_quiz(cache_key, quiz)
+                return quiz
             except httpx.TimeoutException as exc:
                 last_error = exc
             except httpx.HTTPStatusError as exc:
@@ -347,6 +367,72 @@ def _retry_temperature(source_type: GenerationSource, attempt: int) -> float:
 
 def _max_tokens(question_count: int) -> int:
     return min(9000, max(1800, 760 + question_count * 230))
+
+
+async def _get_openrouter_client() -> httpx.AsyncClient:
+    global _client
+    if _client and not _client.is_closed:
+        return _client
+
+    async with _client_lock:
+        if _client and not _client.is_closed:
+            return _client
+
+        _client = httpx.AsyncClient(
+            limits=httpx.Limits(max_connections=32, max_keepalive_connections=12, keepalive_expiry=30.0),
+            timeout=httpx.Timeout(120.0, connect=6.0),
+            http2=False,
+        )
+        return _client
+
+
+def _cache_key(model_name: str, content: str, settings: QuizGenerationSettings) -> str:
+    digest = hashlib.sha256()
+    parts = [
+        model_name,
+        settings.source_type,
+        str(settings.question_count),
+        settings.difficulty,
+        str(settings.time_per_question),
+        str(settings.points_per_question),
+        str(settings.total_quiz_time or ""),
+        settings.user_prompt or "",
+        settings.source_url or "",
+        settings.source_title or "",
+        content,
+    ]
+    for part in parts:
+        digest.update(part.encode("utf-8", errors="ignore"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _get_cached_quiz(cache_key: str) -> GeneratedQuiz | None:
+    now = time.monotonic()
+    cached = _response_cache.get(cache_key)
+    if not cached:
+        return None
+
+    created_at, quiz = cached
+    if now - created_at > _CACHE_TTL_SECONDS:
+        _response_cache.pop(cache_key, None)
+        return None
+    return quiz.model_copy(deep=True)
+
+
+def _set_cached_quiz(cache_key: str, quiz: GeneratedQuiz) -> None:
+    now = time.monotonic()
+    _response_cache[cache_key] = (now, quiz.model_copy(deep=True))
+    if len(_response_cache) <= _CACHE_MAX_ITEMS:
+        return
+
+    expired_keys = [key for key, (created_at, _) in _response_cache.items() if now - created_at > _CACHE_TTL_SECONDS]
+    for key in expired_keys:
+        _response_cache.pop(key, None)
+
+    while len(_response_cache) > _CACHE_MAX_ITEMS:
+        oldest_key = min(_response_cache, key=lambda key: _response_cache[key][0])
+        _response_cache.pop(oldest_key, None)
 
 
 def _source_label(source_type: GenerationSource) -> str:
