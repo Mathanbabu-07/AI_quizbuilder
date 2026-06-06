@@ -108,10 +108,11 @@ class OpenRouterService:
         content: str,
         generation_settings: QuizGenerationSettings,
     ) -> GeneratedQuiz:
-        if not self.settings.openrouter_api_key:
+        api_key = self._api_key_for_source(generation_settings.source_type)
+        if not api_key:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="OpenRouter API key is missing. Add OPENROUTER_API_KEY in backend/.env and restart the backend.",
+                detail=_missing_openrouter_key_message(generation_settings.source_type),
             )
 
         compact_content = _compact_generation_content(content, generation_settings.source_type)
@@ -130,7 +131,7 @@ class OpenRouterService:
             "response_format": {"type": "json_object"},
         }
 
-        headers = self._headers()
+        headers = self._headers(api_key)
         url = f"{self.settings.openrouter_base_url}/chat/completions"
         deadline = time.monotonic() + min(150.0, max(30.0, self.settings.generation_timeout_seconds))
         last_error: Exception | None = None
@@ -362,9 +363,14 @@ Generate exactly {missing_count} additional unique multiple-choice {missing_labe
             shuffle_options=True,
         )
 
-    def _headers(self) -> dict[str, str]:
+    def _api_key_for_source(self, source_type: GenerationSource) -> str:
+        if source_type == "prompt":
+            return self.settings.openrouter_ai_api_key
+        return self.settings.openrouter_api_key
+
+    def _headers(self, api_key: str) -> dict[str, str]:
         headers = {
-            "Authorization": f"Bearer {self.settings.openrouter_api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "X-Title": "GENQUIZ",
         }
@@ -590,6 +596,15 @@ def _source_label(source_type: GenerationSource) -> str:
     if source_type == "url":
         return "URL"
     return "File"
+
+
+def _missing_openrouter_key_message(source_type: GenerationSource) -> str:
+    if source_type == "prompt":
+        return (
+            "AI quiz OpenRouter API key is missing. Add OPENROUTER_AI_API_KEY in backend/.env "
+            "and Render, then restart the backend."
+        )
+    return "OpenRouter API key is missing. Add OPENROUTER_API_KEY in backend/.env and restart the backend."
 
 
 def _provider_retry_exhausted_message(

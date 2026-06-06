@@ -33,9 +33,10 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Required Render environment variables:
 
 ```env
-OPENROUTER_API_KEY=your-openrouter-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key-for-pdf-and-url
+OPENROUTER_AI_API_KEY=your-openrouter-ai-api-key-for-ai-quiz-generation
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+OPENROUTER_AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
 OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
 OPENROUTER_URL_MODEL=openai/gpt-oss-120b:free
 OPENROUTER_URL_FALLBACK_MODEL=nvidia/nemotron-3-super-120b-a12b:free

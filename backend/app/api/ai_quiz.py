@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import Settings, get_settings
 from app.models.quiz import GenerateQuizRequest, GenerateQuizResponse, VerifyQuizRequest, VerifyQuizResponse
+from app.services.ai_quiz_pipeline import AIQuizPipeline
 from app.services.multiplayer_service import create_persistent_room_async
-from app.services.openrouter_service import QuizGenerationSettings, generate_quiz_with_model
 from app.services.quiz_formatter import quiz_to_storage_dict
 from app.services.quiz_validator import validate_quiz_payload
 from app.services.supabase_service import supabase_service
@@ -26,17 +26,13 @@ async def generate_ai_quiz(
         request.time_per_question,
         len(request.prompt),
     )
-    quiz = await generate_quiz_with_model(
-        settings.openrouter_model,
-        request.prompt,
-        QuizGenerationSettings.from_prompt(settings, request),
-    )
+    result = await AIQuizPipeline(settings).generate(request)
 
     return GenerateQuizResponse(
-        quiz=quiz,
+        quiz=result.quiz,
         meta={
-            "model": settings.openrouter_model,
-            "question_count": len(quiz.questions),
+            "model": result.model,
+            "question_count": len(result.quiz.questions),
             "difficulty": request.difficulty,
             "time_per_question": request.time_per_question,
             "total_quiz_time": request.total_quiz_time,

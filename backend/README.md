@@ -17,7 +17,9 @@ Optional performance settings:
 
 ```env
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+OPENROUTER_API_KEY=
+OPENROUTER_AI_API_KEY=
+OPENROUTER_AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
 OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
 OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 SCRAPEDO_API_KEY=
@@ -58,7 +60,7 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - `POST /api/multiplayer/join-room`
 - `POST /api/multiplayer/start`
 
-The text generation endpoint calls OpenRouter using `OPENROUTER_MODEL`, defaulting to `nvidia/nemotron-3-ultra-550b-a55b:free`.
+The text AI quiz endpoint calls OpenRouter using `OPENROUTER_AI_API_KEY` and `OPENROUTER_AI_MODEL`, defaulting to `nvidia/nemotron-3-ultra-550b-a55b:free`.
 The PDF/PPT file generation endpoint uses `OPENROUTER_PDF_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
 The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
 OpenRouter calls are async, pooled, retried up to three times, validated as structured quiz JSON, repaired on malformed output, and briefly cached for identical generation requests.
