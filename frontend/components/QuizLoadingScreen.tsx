@@ -14,9 +14,10 @@ const messages = [
 
 type QuizLoadingScreenProps = {
   progress?: number;
+  stage?: string;
 };
 
-export function QuizLoadingScreen({ progress }: QuizLoadingScreenProps) {
+export function QuizLoadingScreen({ progress, stage }: QuizLoadingScreenProps) {
   const [messageIndex, setMessageIndex] = useState(0);
   const displayProgress =
     typeof progress === "number" && Number.isFinite(progress)
@@ -84,7 +85,7 @@ export function QuizLoadingScreen({ progress }: QuizLoadingScreenProps) {
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
         >
           <Sparkles className="size-4" />
-          AI generation in progress
+          {stage || "AI generation in progress"}
         </motion.div>
 
         <motion.p

@@ -44,6 +44,14 @@ type GenerateQuizApiResponse = {
 
 type GenerationProgressApiResponse = {
   progress?: unknown;
+  stage?: unknown;
+  status?: unknown;
+};
+
+type GenerationProgressSnapshot = {
+  progress: number;
+  stage: string;
+  status: "pending" | "running" | "complete" | "error";
 };
 
 type RawQuizQuestion = {
@@ -176,7 +184,7 @@ function normalizeProgress(value: unknown): number | null {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-async function readGenerationProgress(apiBaseUrl: string, progressId: string, signal?: AbortSignal): Promise<number | null> {
+async function readGenerationProgress(apiBaseUrl: string, progressId: string, signal?: AbortSignal): Promise<GenerationProgressSnapshot | null> {
   try {
     const response = await fetch(`${apiBaseUrl}/api/ai-quiz/progress/${encodeURIComponent(progressId)}`, {
       method: "GET",
@@ -193,7 +201,19 @@ async function readGenerationProgress(apiBaseUrl: string, progressId: string, si
     }
 
     const payload = (await response.json()) as GenerationProgressApiResponse;
-    return normalizeProgress(payload.progress);
+    const progress = normalizeProgress(payload.progress);
+    if (progress === null) {
+      return null;
+    }
+
+    return {
+      progress,
+      stage: typeof payload.stage === "string" && payload.stage.trim() ? payload.stage.trim() : "AI generation in progress",
+      status:
+        payload.status === "pending" || payload.status === "running" || payload.status === "complete" || payload.status === "error"
+          ? payload.status
+          : "running"
+    };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
@@ -206,19 +226,19 @@ async function readGenerationProgress(apiBaseUrl: string, progressId: string, si
 async function pollGenerationProgress(
   apiBaseUrl: string,
   progressId: string,
-  onProgress: (progress: number) => void,
+  onProgress: (progress: number, stage?: string) => void,
   shouldStop: () => boolean,
   signal: AbortSignal
 ) {
   let lastProgress = -1;
 
   while (!shouldStop() && !signal.aborted) {
-    const progress = await readGenerationProgress(apiBaseUrl, progressId, signal);
-    if (progress !== null && progress !== lastProgress) {
-      onProgress(progress);
-      lastProgress = progress;
+    const snapshot = await readGenerationProgress(apiBaseUrl, progressId, signal);
+    if (snapshot && snapshot.progress !== lastProgress) {
+      onProgress(snapshot.progress, snapshot.stage);
+      lastProgress = snapshot.progress;
     }
-    if (progress === 100) {
+    if (snapshot?.progress === 100 || snapshot?.status === "error") {
       return;
     }
 
@@ -256,7 +276,7 @@ async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attem
   }
 }
 
-export async function generateQuiz(settings: QuizSettings, onProgress?: (progress: number) => void): Promise<GeneratedQuiz> {
+export async function generateQuiz(settings: QuizSettings, onProgress?: (progress: number, stage?: string) => void): Promise<GeneratedQuiz> {
   const apiBaseUrl = getApiBaseUrl();
   const progressId = createGenerationProgressId();
   const progressController = new AbortController();
@@ -271,7 +291,7 @@ export async function generateQuiz(settings: QuizSettings, onProgress?: (progres
       )
     : null;
 
-  onProgress?.(0);
+  onProgress?.(0, "Request received");
 
   try {
     let response: Response;
@@ -299,9 +319,9 @@ export async function generateQuiz(settings: QuizSettings, onProgress?: (progres
     }
 
     if (onProgress) {
-      const progress = await readGenerationProgress(apiBaseUrl, progressId);
-      if (progress !== null) {
-        onProgress(progress);
+      const snapshot = await readGenerationProgress(apiBaseUrl, progressId);
+      if (snapshot) {
+        onProgress(snapshot.progress, snapshot.stage);
       }
     }
 

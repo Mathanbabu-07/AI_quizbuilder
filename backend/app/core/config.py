@@ -13,7 +13,7 @@ class Settings(BaseModel):
     openrouter_api_key: str = ""
     openrouter_ai_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
     openrouter_file_model: str = "nvidia/nemotron-3-nano-30b-a3b:free"
     openrouter_url_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
     openrouter_url_fallback_model: str = ""
@@ -119,7 +119,7 @@ def get_settings() -> Settings:
         openrouter_api_key=_secret_env("OPENROUTER_API_KEY"),
         openrouter_ai_api_key=_secret_env("OPENROUTER_AI_API_KEY"),
         openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/"),
-        openrouter_model=_openrouter_model_env("OPENROUTER_AI_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free"),
+        openrouter_model=_openrouter_model_env("OPENROUTER_AI_MODEL", "nvidia/nemotron-3-ultra-550b-a55b"),
         openrouter_file_model=_text_env_any(
             ("OPENROUTER_PDF_MODEL", "OPENROUTER_FILE_MODEL"),
             "nvidia/nemotron-3-nano-30b-a3b:free",

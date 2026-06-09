@@ -115,6 +115,7 @@ export function HeroSection() {
   const [fileGenerating, setFileGenerating] = useState(false);
   const [urlGenerating, setUrlGenerating] = useState(false);
   const [aiGenerationProgress, setAiGenerationProgress] = useState(0);
+  const [aiGenerationStage, setAiGenerationStage] = useState("AI generation in progress");
   const hostId = useDeviceHostId();
   const hostRoom = useHostRoom(multiplayerEnabled, roomCode, quiz, settings);
   const participantRoom = useParticipantRoom();
@@ -259,10 +260,16 @@ export function HeroSection() {
     setSettings(nextSettings);
     setCreationMode("ai");
     setAiGenerationProgress(0);
+    setAiGenerationStage("Request received");
     setScreen("loading");
 
     try {
-      const generatedQuiz = await generateQuiz(nextSettings, setAiGenerationProgress);
+      const generatedQuiz = await generateQuiz(nextSettings, (progress, stage) => {
+        setAiGenerationProgress(progress);
+        if (stage) {
+          setAiGenerationStage(stage);
+        }
+      });
       setQuiz(generatedQuiz);
       if (multiplayerEnabled) {
         setRoomCode(generateRoomCode());
@@ -732,7 +739,7 @@ export function HeroSection() {
             onBack={() => goToScreen("create")}
           />
         ) : screen === "loading" ? (
-          <QuizLoadingScreen key="loading" progress={aiGenerationProgress} />
+          <QuizLoadingScreen key="loading" progress={aiGenerationProgress} stage={aiGenerationStage} />
         ) : screen === "review" && quiz && settings ? (
           <QuizReviewPanel
             key="review"

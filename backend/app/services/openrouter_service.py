@@ -24,6 +24,10 @@ _client: httpx.AsyncClient | None = None
 _response_cache: dict[str, tuple[float, GeneratedQuiz]] = {}
 
 
+class OpenRouterPayloadError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class QuizGenerationSettings:
     app_settings: Settings
@@ -154,11 +158,20 @@ class OpenRouterService:
                 payload["temperature"] = _retry_temperature(generation_settings.source_type, attempt_index)
                 timeout = _openrouter_request_timeout(generation_settings.source_type, deadline)
                 client = await _get_openrouter_client()
-                response = await client.post(url, json=payload, headers=headers, timeout=timeout)
+                response = await _post_with_provider_progress(
+                    client,
+                    url,
+                    payload,
+                    headers,
+                    timeout,
+                    generation_settings,
+                )
                 response.raise_for_status()
                 response_payload = response.json()
-                update_ai_quiz_progress(generation_settings.progress_id, 60, "Questions generated")
+                _raise_for_openrouter_payload_error(response_payload)
+                update_ai_quiz_progress(generation_settings.progress_id, 55, "AI provider responded")
                 parsed_payload = self._extract_response_payload(response_payload)
+                update_ai_quiz_progress(generation_settings.progress_id, 60, "Questions generated")
                 update_ai_quiz_progress(generation_settings.progress_id, 80, "Quiz JSON formatted")
                 try:
                     quiz = self._validate_parsed_payload(parsed_payload, generation_settings)
@@ -219,6 +232,17 @@ class OpenRouterService:
                         ),
                     ) from exc
                 last_error = exc
+            except OpenRouterPayloadError as exc:
+                logger.warning(
+                    "OpenRouter returned a non-chat completion payload model=%s source=%s detail=%s",
+                    model_name,
+                    generation_settings.source_type,
+                    exc,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"OpenRouter did not return quiz content from {model_name}. {exc}",
+                ) from exc
             except (KeyError, TypeError, ValueError, QuizValidationError) as exc:
                 logger.warning(
                     "OpenRouter returned unusable quiz JSON on attempt %s model=%s source=%s: %s",
@@ -375,7 +399,19 @@ Generate exactly {missing_count} additional unique multiple-choice {missing_labe
         return self._validate_parsed_payload(parsed, settings)
 
     def _extract_response_payload(self, data: dict[str, Any]) -> dict[str, Any]:
-        message = data["choices"][0]["message"]
+        _raise_for_openrouter_payload_error(data)
+        choices = data.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise OpenRouterPayloadError(f"Response was missing choices. Payload keys: {', '.join(data.keys()) or 'none'}.")
+
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            raise OpenRouterPayloadError("Response choices were not valid objects.")
+
+        message = first_choice.get("message")
+        if not isinstance(message, dict):
+            raise OpenRouterPayloadError("Response choice was missing a message object.")
+
         content = _coerce_message_content(message.get("content"))
         return extract_json_object(content)
 
@@ -542,6 +578,66 @@ def _retry_temperature(source_type: GenerationSource, attempt: int) -> float:
     if attempt <= 0:
         return _initial_temperature(source_type)
     return 0.08 if source_type in {"pdf", "url", "file"} else 0.12
+
+
+async def _post_with_provider_progress(
+    client: httpx.AsyncClient,
+    url: str,
+    payload: dict[str, Any],
+    headers: dict[str, str],
+    timeout: httpx.Timeout,
+    generation_settings: QuizGenerationSettings,
+) -> httpx.Response:
+    if generation_settings.source_type != "prompt" or not generation_settings.progress_id:
+        return await client.post(url, json=payload, headers=headers, timeout=timeout)
+
+    stop_event = asyncio.Event()
+    progress_task = asyncio.create_task(_mark_provider_wait_progress(generation_settings.progress_id, stop_event))
+    try:
+        return await client.post(url, json=payload, headers=headers, timeout=timeout)
+    finally:
+        stop_event.set()
+        progress_task.cancel()
+        try:
+            await progress_task
+        except asyncio.CancelledError:
+            pass
+
+
+async def _mark_provider_wait_progress(progress_id: str, stop_event: asyncio.Event) -> None:
+    wait_markers = [
+        (3.0, 30, "Request sent to NVIDIA model"),
+        (10.0, 35, "Waiting for NVIDIA model response"),
+        (25.0, 40, "NVIDIA model is still processing"),
+        (60.0, 45, "Still waiting for generated quiz"),
+        (120.0, 50, "OpenRouter provider is still processing"),
+        (240.0, 54, "Long provider wait in progress"),
+    ]
+    started_at = time.monotonic()
+    marker_index = 0
+
+    while not stop_event.is_set() and marker_index < len(wait_markers):
+        delay, progress, stage = wait_markers[marker_index]
+        elapsed = time.monotonic() - started_at
+        wait_for = max(0.0, delay - elapsed)
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=wait_for)
+            return
+        except asyncio.TimeoutError:
+            update_ai_quiz_progress(progress_id, progress, stage)
+            marker_index += 1
+
+
+def _raise_for_openrouter_payload_error(data: dict[str, Any]) -> None:
+    error = data.get("error")
+    if not error:
+        return
+
+    if isinstance(error, dict):
+        message = error.get("message") or error.get("metadata") or error.get("code")
+    else:
+        message = str(error)
+    raise OpenRouterPayloadError(f"Provider error: {str(message)[:600]}")
 
 
 def _generation_deadline(settings: Settings, source_type: GenerationSource) -> float | None:
