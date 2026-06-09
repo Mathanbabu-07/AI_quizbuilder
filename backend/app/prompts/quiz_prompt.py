@@ -27,6 +27,7 @@ Rules:
 - Avoid duplicates and trivial wording.
 - Keep questions concise, meaningful, and factually grounded.
 - Keep choices plausible and balanced.
+- Vary the correct answer position naturally; do not put the correct answer first for every question.
 - Keep each question under 140 characters when possible.
 - Keep each choice under 70 characters when possible.
 - For programming quizzes, include short code snippets only when they are necessary.
@@ -39,8 +40,8 @@ Return this exact JSON shape:
   "questions": [
     {{
       "question": "Question text",
-      "options": ["Choice A", "Choice B", "Choice C", "Choice D"],
-      "correctAnswer": "Choice A",
+      "options": ["Distractor choice", "Correct choice", "Another distractor", "Final distractor"],
+      "correctAnswer": "Correct choice",
       "explanation": "One sentence explanation",
       "timeLimit": {request.time_per_question},
       "points": {request.points_per_question}

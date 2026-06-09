@@ -40,7 +40,7 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
 
   return (
     <motion.section
-      className="relative z-10 grid min-h-dvh place-items-center px-4 py-24 sm:px-8"
+      className="relative z-10 flex min-h-dvh items-start justify-center px-4 pb-10 pt-16 sm:grid sm:place-items-center sm:px-8 sm:py-24"
       initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -28, filter: "blur(10px)" }}
@@ -50,7 +50,7 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
         {[0, 1, 2, 3, 4, 5, 6, 7].map((item) => (
           <motion.span
             key={item}
-            className="absolute left-1/2 top-20 size-2 rounded-full bg-cyan-100 shadow-[0_0_18px_rgba(103,232,249,0.9)]"
+            className="absolute left-1/2 top-12 size-1.5 rounded-full bg-cyan-100 shadow-[0_0_18px_rgba(103,232,249,0.9)] sm:top-20 sm:size-2"
             animate={{
               x: [0, Math.cos(item) * 260],
               y: [0, Math.sin(item) * 150],
@@ -62,18 +62,18 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
         ))}
 
         <motion.div
-          className="mx-auto grid size-28 place-items-center rounded-full border border-cyan-100/20 bg-white/[0.06] text-cyan-100 shadow-[0_0_52px_rgba(34,211,238,0.25)] backdrop-blur-2xl"
+          className="mx-auto grid size-20 place-items-center rounded-full border border-cyan-100/20 bg-white/[0.06] text-cyan-100 shadow-[0_0_52px_rgba(34,211,238,0.25)] backdrop-blur-2xl sm:size-28"
           animate={{ scale: [1, 1.06, 1] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Sparkles className="size-12" strokeWidth={1.8} />
+          <Sparkles className="size-9 sm:size-12" strokeWidth={1.8} />
         </motion.div>
 
-        <p className="mt-8 font-display text-xs font-extrabold uppercase text-cyan-100/76">Final results</p>
-        <h2 className="mt-3 font-display text-5xl font-extrabold text-white sm:text-7xl">{percentage}%</h2>
-        <p className="mx-auto mt-4 max-w-2xl font-sans text-lg font-semibold leading-relaxed text-white/68 sm:text-xl">{analysis}</p>
+        <p className="mt-5 font-display text-xs font-extrabold uppercase text-cyan-100/76 sm:mt-8">Final results</p>
+        <h2 className="mt-2 font-display text-5xl font-extrabold text-white sm:mt-3 sm:text-7xl">{percentage}%</h2>
+        <p className="mx-auto mt-3 max-w-[22rem] break-words font-sans text-base font-semibold leading-snug text-white/68 sm:mt-4 sm:max-w-2xl sm:text-xl sm:leading-relaxed">{analysis}</p>
 
-        <div className="mt-8 grid gap-3 sm:mt-9 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-9 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <AnimatedScoreCard label="Correct" value={String(correct)} icon={<CheckCircle2 className="size-5" />} tone="text-emerald-100" />
           <AnimatedScoreCard label="Wrong" value={String(wrong)} icon={<XCircle className="size-5" />} tone="text-rose-100" />
           <AnimatedScoreCard label="Avg Response" value={`${averageTime}s`} icon={<Gauge className="size-5" />} />
@@ -82,7 +82,7 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
 
         {leaderboard.length > 0 ? (
           <motion.div
-            className="mx-auto mt-9 max-w-3xl rounded-[2rem] border border-white/12 bg-slate-950/34 p-4 text-left shadow-[0_22px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl sm:p-5"
+            className="mx-auto mt-6 max-w-3xl rounded-[1.5rem] border border-white/12 bg-slate-950/34 p-3 text-left shadow-[0_22px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl sm:mt-9 sm:rounded-[2rem] sm:p-5"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.45 }}
@@ -92,7 +92,7 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
                 <p className="font-display text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100/76">
                   Multiplayer leaderboard
                 </p>
-                <h3 className="mt-2 font-display text-2xl font-extrabold text-white">Arena Rankings</h3>
+                <h3 className="mt-2 font-display text-xl font-extrabold text-white sm:text-2xl">Arena Rankings</h3>
               </div>
               <Award className="size-7 text-fuchsia-100/72" />
             </div>
@@ -105,7 +105,7 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
                 return (
                   <motion.div
                     key={player.id}
-                    className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 sm:px-4 ${
+                    className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-2xl border px-3 py-2.5 sm:gap-3 sm:py-3 sm:px-4 ${
                       isWinner
                         ? "border-amber-100/30 bg-amber-100/[0.09] shadow-[0_0_34px_rgba(251,191,36,0.12)]"
                         : isCurrent
@@ -139,7 +139,7 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
           </motion.div>
         ) : null}
 
-        <div className="mt-9 flex justify-center">
+        <div className="mt-6 flex justify-center sm:mt-9">
           <AnimatedButton onClick={onRestart}>
             <RotateCcw className="mr-3 size-4" />
             Create Again

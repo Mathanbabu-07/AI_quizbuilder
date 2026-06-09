@@ -105,14 +105,14 @@ function CreateQuizPanelComponent({
 
   return (
     <motion.section
-      className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-24 sm:px-8"
+      className="relative z-10 flex min-h-dvh items-start justify-center px-4 pb-12 pt-24 sm:items-center sm:px-8 sm:py-24"
       initial={{ opacity: 0, y: 42, scale: 0.97, filter: "blur(14px)" }}
       animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: 28, scale: 0.98, filter: "blur(10px)" }}
       transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
     >
       <motion.form
-        className="relative w-full max-w-5xl"
+        className="relative w-full max-w-5xl pt-16 sm:pt-0"
         onSubmit={(event) => {
           event.preventDefault();
           handleSubmit();
@@ -130,12 +130,12 @@ function CreateQuizPanelComponent({
         <FloatingGlow className="-left-12 top-10 size-44 bg-cyan-300/14" />
         <FloatingGlow className="-right-16 bottom-24 size-52 bg-fuchsia-300/12" />
         {onOpenFileQuiz || onOpenUrlQuiz ? (
-          <div className="absolute left-0 top-0 z-20 flex items-center gap-2">
+          <div className="absolute left-0 top-0 z-20 flex items-center gap-1.5 sm:gap-2">
             {onOpenFileQuiz ? (
               <motion.button
                 type="button"
                 onClick={onOpenFileQuiz}
-                className="group relative flex size-14 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-16"
+                className="group relative flex size-12 flex-col items-center justify-center gap-0.5 rounded-[1.15rem] border border-cyan-100/18 bg-white/[0.065] text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-cyan-100/38 hover:bg-cyan-100/12 focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:size-16 sm:rounded-2xl"
                 whileHover={{ y: -2, scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Generate quiz from PDF or PPTX"
@@ -146,7 +146,7 @@ function CreateQuizPanelComponent({
                   animate={{ opacity: [0.25, 0.85, 0.25], scale: [1, 1.05, 1] }}
                   transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
                 />
-                <FileUp className="relative size-5 sm:size-6" />
+                <FileUp className="relative size-4 sm:size-6" />
                 <span className="relative font-display text-[0.55rem] font-extrabold uppercase leading-none tracking-[0.12em] text-cyan-50/78">
                   PDF
                 </span>
@@ -156,7 +156,7 @@ function CreateQuizPanelComponent({
               <motion.button
                 type="button"
                 onClick={onOpenUrlQuiz}
-                className="group relative flex size-14 flex-col items-center justify-center gap-0.5 rounded-2xl border border-fuchsia-100/18 bg-white/[0.065] text-fuchsia-100 shadow-[0_0_28px_rgba(217,70,239,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-fuchsia-100/38 hover:bg-fuchsia-100/12 focus-visible:ring-2 focus-visible:ring-fuchsia-200/70 sm:size-16"
+                className="group relative flex size-12 flex-col items-center justify-center gap-0.5 rounded-[1.15rem] border border-fuchsia-100/18 bg-white/[0.065] text-fuchsia-100 shadow-[0_0_28px_rgba(217,70,239,0.14)] outline-none backdrop-blur-2xl transition-colors hover:border-fuchsia-100/38 hover:bg-fuchsia-100/12 focus-visible:ring-2 focus-visible:ring-fuchsia-200/70 sm:size-16 sm:rounded-2xl"
                 whileHover={{ y: -2, scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Generate quiz from URL"
@@ -167,7 +167,7 @@ function CreateQuizPanelComponent({
                   animate={{ opacity: [0.22, 0.82, 0.22], scale: [1, 1.05, 1] }}
                   transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
                 />
-                <Link2 className="relative size-5 sm:size-6" />
+                <Link2 className="relative size-4 sm:size-6" />
                 <span className="relative font-display text-[0.55rem] font-extrabold uppercase leading-none tracking-[0.12em] text-fuchsia-50/78">
                   URL
                 </span>

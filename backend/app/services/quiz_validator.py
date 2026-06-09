@@ -1,3 +1,4 @@
+import hashlib
 import random
 import re
 from typing import Any
@@ -84,6 +85,7 @@ def _normalize_quiz_payload(
         payload = payload["quiz"]
 
     title = _clean_text(payload.get("title")) or "GENQUIZ Quiz"
+    quiz_seed = _stable_seed(title, str(question_count), difficulty)
     raw_questions = payload.get("questions") or payload.get("mcqs") or payload.get("items") or []
     if not isinstance(raw_questions, list):
         raise QuizValidationError("AI response questions must be a list.")
@@ -126,7 +128,13 @@ def _normalize_quiz_payload(
         if len(options) != 4 or answer not in options:
             continue
         if shuffle_options:
-            options = _shuffle_options(options)
+            options = _shuffle_options(
+                options,
+                answer,
+                question_index=len(normalized_questions),
+                quiz_seed=quiz_seed,
+                question_text=question_text,
+            )
 
         normalized_questions.append(
             {
@@ -193,16 +201,45 @@ def _resolve_answer(answer: str, options: list[str]) -> str:
 
 
 def _trim_options_keeping_answer(options: list[str], answer: str) -> list[str]:
+    if answer in options[:4]:
+        return options[:4]
     if answer in options:
-        selected = [answer, *[option for option in options if option != answer]]
-        return selected[:4]
+        return options[:3] + [answer]
     return options[:3] + [answer]
 
 
-def _shuffle_options(options: list[str]) -> list[str]:
-    shuffled = options[:]
-    random.shuffle(shuffled)
+def _shuffle_options(
+    options: list[str],
+    answer: str,
+    *,
+    question_index: int,
+    quiz_seed: int,
+    question_text: str,
+) -> list[str]:
+    distractors = [option for option in options if option != answer]
+    rng = random.Random(_stable_seed(str(quiz_seed), question_text, answer))
+    rng.shuffle(distractors)
+
+    answer_position = (quiz_seed + question_index) % 4
+    shuffled: list[str] = []
+    distractor_index = 0
+
+    for option_index in range(4):
+        if option_index == answer_position:
+            shuffled.append(answer)
+        else:
+            shuffled.append(distractors[distractor_index])
+            distractor_index += 1
+
     return shuffled
+
+
+def _stable_seed(*parts: str) -> int:
+    digest = hashlib.sha256()
+    for part in parts:
+        digest.update(part.encode("utf-8", errors="ignore"))
+        digest.update(b"\0")
+    return int.from_bytes(digest.digest()[:8], "big")
 
 
 def _strip_option_label(value: str) -> str:

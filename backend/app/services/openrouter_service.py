@@ -491,6 +491,7 @@ Rules:
 - timeLimit must be {settings.time_per_question}.
 - points must be {settings.points_per_question}.
 - Avoid duplicate questions and repeated answer patterns.
+- Vary the correct answer position naturally; do not put the correct answer first for every question.
 - Keep questions concise, clear, and multiplayer-ready.
 - Do not include unsupported facts.
 - Return JSON only.
@@ -502,8 +503,8 @@ Required JSON shape:
   "questions": [
     {{
       "question": "Question text",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Option A",
+      "options": ["Distractor option", "Correct option", "Another distractor", "Final distractor"],
+      "correctAnswer": "Correct option",
       "explanation": "One sentence explanation",
       "timeLimit": {settings.time_per_question},
       "points": {settings.points_per_question}

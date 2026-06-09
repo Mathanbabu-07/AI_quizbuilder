@@ -28,6 +28,7 @@ Rules:
 - timeLimit must be {request.time_per_question}.
 - points must be {request.points_per_question}.
 - Avoid duplicate questions and repeated answer patterns.
+- Vary the correct answer position naturally; do not put the correct answer first for every question.
 - Do not invent facts that are not supported by the source.
 - Keep questions concise and clear.
 - Follow the user quiz specifications when they do not conflict with the source or JSON rules.
@@ -40,8 +41,8 @@ Required JSON shape:
   "questions": [
     {{
       "question": "Question text",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Option A",
+      "options": ["Distractor option", "Correct option", "Another distractor", "Final distractor"],
+      "correctAnswer": "Correct option",
       "explanation": "One sentence explanation",
       "timeLimit": {request.time_per_question},
       "points": {request.points_per_question}

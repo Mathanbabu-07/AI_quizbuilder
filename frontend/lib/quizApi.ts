@@ -553,9 +553,11 @@ function normalizeGeneratedQuiz(value: unknown, fallbackDifficulty: QuizSettings
     throw new Error("Quiz generation returned no valid questions.");
   }
 
+  const title = typeof rawQuiz.title === "string" && rawQuiz.title.trim() ? rawQuiz.title.trim() : "GENQUIZ Quiz";
+
   return {
-    title: typeof rawQuiz.title === "string" && rawQuiz.title.trim() ? rawQuiz.title.trim() : "GENQUIZ Quiz",
-    questions
+    title,
+    questions: shuffleQuizQuestionChoices(questions, title)
   };
 }
 
@@ -601,6 +603,70 @@ function normalizeQuestion(value: unknown, fallbackDifficulty: QuizSettings["dif
     time_limit: numberValue(item.time_limit ?? item.timeLimit),
     points: numberValue(item.points) ?? 1
   };
+}
+
+function shuffleQuizQuestionChoices(
+  questions: GeneratedQuiz["questions"],
+  title: string
+): GeneratedQuiz["questions"] {
+  const quizOffset = stableHash(`${title}|${questions.length}`) % 4;
+
+  return questions.map((question, questionIndex) => ({
+    ...question,
+    choices: shuffleChoicesKeepingAnswer(
+      question.choices,
+      question.correct_answer,
+      (quizOffset + questionIndex) % 4,
+      `${question.question}|${question.correct_answer}`
+    )
+  }));
+}
+
+function shuffleChoicesKeepingAnswer(choices: string[], correctAnswer: string, answerPosition: number, seedText: string): string[] {
+  const answer = choices.find((choice) => choice.toLowerCase() === correctAnswer.toLowerCase());
+  if (!answer || choices.length !== 4) {
+    return choices;
+  }
+
+  const distractors = stableShuffle(
+    choices.filter((choice) => choice !== answer),
+    stableHash(seedText)
+  );
+  const shuffled: string[] = [];
+  let distractorIndex = 0;
+
+  for (let index = 0; index < 4; index += 1) {
+    if (index === answerPosition) {
+      shuffled.push(answer);
+    } else {
+      shuffled.push(distractors[distractorIndex]);
+      distractorIndex += 1;
+    }
+  }
+
+  return shuffled;
+}
+
+function stableShuffle<T>(items: T[], seed: number): T[] {
+  const shuffled = [...items];
+  let state = seed || 1;
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    const swapIndex = state % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+function stableHash(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function normalizeStringArray(value: unknown): string[] {
