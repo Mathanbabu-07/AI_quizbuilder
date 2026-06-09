@@ -41,7 +41,6 @@ OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
 OPENROUTER_URL_MODEL=openai/gpt-oss-120b:free
 OPENROUTER_URL_FALLBACK_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 SCRAPEDO_API_KEY=your-scrapedo-api-key
-GENERATION_TIMEOUT_SECONDS=120
 PDF_MAX_UPLOAD_MB=10
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key

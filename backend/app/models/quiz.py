@@ -12,6 +12,7 @@ class GenerateQuizRequest(BaseModel):
     time_per_question: int = Field(..., ge=5, le=300)
     total_quiz_time: int = Field(..., ge=1, le=120)
     points_per_question: int = Field(default=1, ge=1, le=10)
+    progress_id: str | None = Field(default=None, min_length=8, max_length=80)
 
 
 class QuizQuestion(BaseModel):
@@ -90,6 +91,13 @@ class GeneratedQuiz(BaseModel):
 class GenerateQuizResponse(BaseModel):
     quiz: GeneratedQuiz
     meta: dict[str, int | str]
+
+
+class GenerateQuizProgressResponse(BaseModel):
+    progress_id: str
+    progress: int = Field(..., ge=0, le=100)
+    stage: str
+    status: Literal["pending", "running", "complete", "error"]
 
 
 class FileUploadResponse(BaseModel):

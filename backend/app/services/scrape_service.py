@@ -21,7 +21,7 @@ class ScrapeDoService:
                 detail="Scrape.do API key is missing. Add SCRAPEDO_API_KEY in backend/.env and restart the backend.",
             )
 
-        timeout_seconds = min(35.0, max(12.0, self.settings.generation_timeout_seconds / 3))
+        timeout_seconds = min(35.0, max(12.0, self.settings.source_generation_timeout_seconds / 3))
         last_error: Exception | None = None
 
         for attempt in range(2):

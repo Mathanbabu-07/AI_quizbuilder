@@ -24,7 +24,6 @@ OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
 OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 SCRAPEDO_API_KEY=
 SCRAPEDO_BASE_URL=http://api.scrape.do/
-GENERATION_TIMEOUT_SECONDS=90
 PDF_MAX_UPLOAD_MB=10
 MAX_URL_CONTENT_LENGTH=50000
 SUPABASE_URL=
@@ -63,8 +62,8 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 The text AI quiz endpoint calls OpenRouter using `OPENROUTER_AI_API_KEY` and `OPENROUTER_AI_MODEL`, defaulting to `nvidia/nemotron-3-ultra-550b-a55b:free`.
 The PDF/PPT file generation endpoint uses `OPENROUTER_PDF_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
 The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
-OpenRouter calls are async, pooled, retried up to three times, validated as structured quiz JSON, repaired on malformed output, and briefly cached for identical generation requests.
-Generation is capped by `GENERATION_TIMEOUT_SECONDS` and returns a clean timeout message if the provider is slow.
+OpenRouter calls are async, pooled, validated as structured quiz JSON, and briefly cached for identical generation requests.
+AI prompt generation has no read timeout and uses one primary generation request, with one targeted repair request only if the model returns too few questions. PDF/PPT and URL source generation keep internal safety timeouts and retries for large extracted sources.
 
 PDF upload extraction uses PyMuPDF. PPTX extraction uses python-pptx. Run `supabase/ai_file_quiz_schema.sql`
 to add generated quiz and room persistence tables.

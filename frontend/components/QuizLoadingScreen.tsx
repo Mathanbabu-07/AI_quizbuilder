@@ -12,8 +12,16 @@ const messages = [
   "Calibrating AI quiz engine..."
 ];
 
-export function QuizLoadingScreen() {
+type QuizLoadingScreenProps = {
+  progress?: number;
+};
+
+export function QuizLoadingScreen({ progress }: QuizLoadingScreenProps) {
   const [messageIndex, setMessageIndex] = useState(0);
+  const displayProgress =
+    typeof progress === "number" && Number.isFinite(progress)
+      ? Math.max(0, Math.min(100, Math.round(progress)))
+      : null;
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -81,13 +89,18 @@ export function QuizLoadingScreen() {
 
         <motion.p
           key={messageIndex}
-          className="mt-4 min-h-8 font-sans text-xl font-semibold text-white/74 sm:text-2xl"
+          className="relative mt-4 min-h-8 font-sans text-xl font-semibold text-white/74 sm:text-2xl"
           initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           exit={{ opacity: 0, y: -10, filter: "blur(8px)" }}
           transition={{ duration: 0.45 }}
         >
           {messages[messageIndex]}
+          {displayProgress !== null ? (
+            <span className="absolute left-1/2 top-full mt-2 -translate-x-1/2 text-base font-semibold text-white/74 sm:text-lg">
+              {displayProgress}%
+            </span>
+          ) : null}
         </motion.p>
 
         <div className="mt-8 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-white/8">

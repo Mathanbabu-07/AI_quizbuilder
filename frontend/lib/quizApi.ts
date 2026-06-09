@@ -1,8 +1,9 @@
 import type { GeneratedQuiz, QuizSettings } from "@/types/quiz";
 
-const GENERATION_CLIENT_TIMEOUT_MS = 125_000;
+const SOURCE_GENERATION_CLIENT_TIMEOUT_MS = 125_000;
 const FILE_UPLOAD_CLIENT_TIMEOUT_MS = 70_000;
 const URL_EXTRACTION_CLIENT_TIMEOUT_MS = 55_000;
+const GENERATION_PROGRESS_POLL_MS = 450;
 const PRODUCTION_API_FALLBACK = "https://genquiz-backend-exz2.onrender.com";
 const NETWORK_RETRY_DELAY_MS = 850;
 
@@ -39,6 +40,10 @@ function getApiBaseUrl() {
 
 type GenerateQuizApiResponse = {
   quiz: unknown;
+};
+
+type GenerationProgressApiResponse = {
+  progress?: unknown;
 };
 
 type RawQuizQuestion = {
@@ -136,10 +141,92 @@ function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attempt: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
+function waitForProgressPoll(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
 
+    let timeoutId = 0;
+    const finish = () => {
+      window.clearTimeout(timeoutId);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+
+    timeoutId = window.setTimeout(finish, ms);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+}
+
+function createGenerationProgressId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function normalizeProgress(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+async function readGenerationProgress(apiBaseUrl: string, progressId: string, signal?: AbortSignal): Promise<number | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/ai-quiz/progress/${encodeURIComponent(progressId)}`, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json"
+      },
+      signal
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as GenerationProgressApiResponse;
+    return normalizeProgress(payload.progress);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return null;
+    }
+    console.warn("[GENQUIZ] AI generation progress polling failed", error);
+    return null;
+  }
+}
+
+async function pollGenerationProgress(
+  apiBaseUrl: string,
+  progressId: string,
+  onProgress: (progress: number) => void,
+  shouldStop: () => boolean,
+  signal: AbortSignal
+) {
+  let lastProgress = -1;
+
+  while (!shouldStop() && !signal.aborted) {
+    const progress = await readGenerationProgress(apiBaseUrl, progressId, signal);
+    if (progress !== null && progress !== lastProgress) {
+      onProgress(progress);
+      lastProgress = progress;
+    }
+    if (progress === 100) {
+      return;
+    }
+
+    await waitForProgressPoll(GENERATION_PROGRESS_POLL_MS, signal);
+  }
+}
+
+async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attempt: number, progressId: string): Promise<Response> {
   try {
     return await fetch(`${apiBaseUrl}/api/ai-quiz/generate`, {
       method: "POST",
@@ -155,9 +242,9 @@ async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attem
         difficulty: settings.difficulty,
         time_per_question: settings.timePerQuestion,
         total_quiz_time: settings.totalQuizTime,
-        points_per_question: settings.pointsPerQuestion ?? 1
-      }),
-      signal: controller.signal
+        points_per_question: settings.pointsPerQuestion ?? 1,
+        progress_id: progressId
+      })
     });
   } catch (error) {
     console.error("[GENQUIZ] AI generation fetch failed", {
@@ -166,54 +253,65 @@ async function fetchGeneration(apiBaseUrl: string, settings: QuizSettings, attem
       error
     });
     throw error;
-  } finally {
-    window.clearTimeout(timeoutId);
   }
 }
 
-export async function generateQuiz(settings: QuizSettings): Promise<GeneratedQuiz> {
+export async function generateQuiz(settings: QuizSettings, onProgress?: (progress: number) => void): Promise<GeneratedQuiz> {
   const apiBaseUrl = getApiBaseUrl();
+  const progressId = createGenerationProgressId();
+  const progressController = new AbortController();
+  let stopProgressPolling = false;
+  const progressPromise = onProgress
+    ? pollGenerationProgress(
+        apiBaseUrl,
+        progressId,
+        onProgress,
+        () => stopProgressPolling,
+        progressController.signal
+      )
+    : null;
 
-  let response: Response;
+  onProgress?.(0);
 
   try {
-    response = await fetchGeneration(apiBaseUrl, settings, 1);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("AI quiz generation is taking longer than expected. Try fewer questions or generate again.");
-    }
-
-    await wait(NETWORK_RETRY_DELAY_MS);
+    let response: Response;
 
     try {
-      response = await fetchGeneration(apiBaseUrl, settings, 2);
-    } catch (retryError) {
-      if (retryError instanceof DOMException && retryError.name === "AbortError") {
-        throw new Error("AI quiz generation is taking longer than expected. Try fewer questions or generate again.");
-      }
-
+      response = await fetchGeneration(apiBaseUrl, settings, 1, progressId);
+    } catch (error) {
       throw new Error(`Could not reach the GENQUIZ backend at ${apiBaseUrl}. Check the API URL and backend server status.`);
     }
-  }
 
-  if (!response.ok) {
-    let detail = "Quiz generation failed. Please try again.";
+    if (!response.ok) {
+      let detail = "Quiz generation failed. Please try again.";
 
-    try {
-      const payload = (await response.json()) as ApiErrorPayload;
-      const normalized = normalizeApiError(payload);
-      if (normalized) {
-        detail = normalized;
+      try {
+        const payload = (await response.json()) as ApiErrorPayload;
+        const normalized = normalizeApiError(payload);
+        if (normalized) {
+          detail = normalized;
+        }
+      } catch {
+        detail = `Quiz generation failed with status ${response.status}.`;
       }
-    } catch {
-      detail = `Quiz generation failed with status ${response.status}.`;
+
+      throw new Error(detail);
     }
 
-    throw new Error(detail);
-  }
+    if (onProgress) {
+      const progress = await readGenerationProgress(apiBaseUrl, progressId);
+      if (progress !== null) {
+        onProgress(progress);
+      }
+    }
 
-  const payload = (await response.json()) as GenerateQuizApiResponse | RawGeneratedQuiz;
-  return normalizeGeneratedQuiz(readQuizPayload(payload), settings.difficulty);
+    const payload = (await response.json()) as GenerateQuizApiResponse | RawGeneratedQuiz;
+    return normalizeGeneratedQuiz(readQuizPayload(payload), settings.difficulty);
+  } finally {
+    stopProgressPolling = true;
+    progressController.abort();
+    void progressPromise?.catch(() => undefined);
+  }
 }
 
 export async function uploadQuizFile(file: File): Promise<UploadedQuizFile> {
@@ -272,7 +370,7 @@ export async function generateQuizFromFile(options: GenerateFromFileOptions): Pr
 }> {
   const apiBaseUrl = getApiBaseUrl();
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(() => controller.abort(), SOURCE_GENERATION_CLIENT_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${apiBaseUrl}/api/pdf-quiz/generate`, {
@@ -362,7 +460,7 @@ export async function generateQuizFromUrl(options: GenerateFromUrlOptions): Prom
 }> {
   const apiBaseUrl = getApiBaseUrl();
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_CLIENT_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(() => controller.abort(), SOURCE_GENERATION_CLIENT_TIMEOUT_MS);
 
   try {
     const response = await fetch(`${apiBaseUrl}/api/url-quiz/generate`, {

@@ -3,7 +3,19 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import Settings, get_settings
-from app.models.quiz import GenerateQuizRequest, GenerateQuizResponse, VerifyQuizRequest, VerifyQuizResponse
+from app.models.quiz import (
+    GenerateQuizProgressResponse,
+    GenerateQuizRequest,
+    GenerateQuizResponse,
+    VerifyQuizRequest,
+    VerifyQuizResponse,
+)
+from app.services.ai_quiz_progress import (
+    fail_ai_quiz_progress,
+    get_ai_quiz_progress,
+    start_ai_quiz_progress,
+    update_ai_quiz_progress,
+)
 from app.services.ai_quiz_pipeline import AIQuizPipeline
 from app.services.multiplayer_service import create_persistent_room_async
 from app.services.quiz_formatter import quiz_to_storage_dict
@@ -26,7 +38,14 @@ async def generate_ai_quiz(
         request.time_per_question,
         len(request.prompt),
     )
-    result = await AIQuizPipeline(settings).generate(request)
+    start_ai_quiz_progress(request.progress_id)
+    update_ai_quiz_progress(request.progress_id, 10, "Prompt validated")
+
+    try:
+        result = await AIQuizPipeline(settings).generate(request)
+    except Exception:
+        fail_ai_quiz_progress(request.progress_id)
+        raise
 
     return GenerateQuizResponse(
         quiz=result.quiz,
@@ -39,6 +58,11 @@ async def generate_ai_quiz(
             "points_per_question": request.points_per_question,
         },
     )
+
+
+@router.get("/progress/{progress_id}", response_model=GenerateQuizProgressResponse)
+async def read_ai_quiz_progress(progress_id: str) -> GenerateQuizProgressResponse:
+    return GenerateQuizProgressResponse(**get_ai_quiz_progress(progress_id))
 
 
 @router.post("/verify", response_model=VerifyQuizResponse)

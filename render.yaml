@@ -20,8 +20,6 @@ services:
         value: nvidia/nemotron-3-super-120b-a12b:free
       - key: SCRAPEDO_API_KEY
         sync: false
-      - key: GENERATION_TIMEOUT_SECONDS
-        value: "120"
       - key: PDF_MAX_UPLOAD_MB
         value: "10"
       - key: SUPABASE_URL

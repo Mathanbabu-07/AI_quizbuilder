@@ -26,7 +26,7 @@ class Settings(BaseModel):
         r"^http://localhost(:[0-9]+)?$|"
         r"^http://127\.0\.0\.1(:[0-9]+)?$"
     )
-    generation_timeout_seconds: float = 120.0
+    source_generation_timeout_seconds: float = 120.0
     max_upload_mb: int = 10
     max_url_content_length: int = 50_000
     supabase_url: str = ""
@@ -140,7 +140,7 @@ def get_settings() -> Settings:
             "CORS_ALLOW_ORIGIN_REGEX",
             Settings.model_fields["cors_allow_origin_regex"].default,
         ),
-        generation_timeout_seconds=_float_env("GENERATION_TIMEOUT_SECONDS", 120.0),
+        source_generation_timeout_seconds=_float_env("SOURCE_GENERATION_TIMEOUT_SECONDS", 120.0),
         max_upload_mb=max(1, int(_float_env("PDF_MAX_UPLOAD_MB", _float_env("MAX_UPLOAD_MB", 10)))),
         max_url_content_length=max(4_000, int(_float_env("MAX_URL_CONTENT_LENGTH", 50_000))),
         supabase_url=_secret_env("SUPABASE_URL").rstrip("/"),

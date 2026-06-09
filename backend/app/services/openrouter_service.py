@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 
 from app.core.config import Settings
 from app.models.quiz import Difficulty, GenerateFromFileRequest, GenerateQuizRequest, GeneratedQuiz
+from app.services.ai_quiz_progress import complete_ai_quiz_progress, update_ai_quiz_progress
 from app.services.quiz_validator import QuizValidationError, normalize_quiz_payload, validate_quiz_payload
 from app.utils.json_tools import extract_json_object
 
@@ -35,6 +36,7 @@ class QuizGenerationSettings:
     total_quiz_time: int | None = None
     source_url: str | None = None
     source_title: str | None = None
+    progress_id: str | None = None
 
     @classmethod
     def from_prompt(cls, app_settings: Settings, request: GenerateQuizRequest) -> "QuizGenerationSettings":
@@ -46,6 +48,7 @@ class QuizGenerationSettings:
             points_per_question=request.points_per_question,
             total_quiz_time=request.total_quiz_time,
             source_type="prompt",
+            progress_id=request.progress_id,
         )
 
     @classmethod
@@ -120,6 +123,7 @@ class OpenRouterService:
         cached = _get_cached_quiz(cache_key)
         if cached:
             logger.info("OpenRouter quiz cache hit model=%s source=%s", model_name, generation_settings.source_type)
+            complete_ai_quiz_progress(generation_settings.progress_id)
             return cached
 
         payload: dict[str, Any] = {
@@ -133,21 +137,29 @@ class OpenRouterService:
 
         headers = self._headers(api_key)
         url = f"{self.settings.openrouter_base_url}/chat/completions"
-        deadline = time.monotonic() + min(150.0, max(30.0, self.settings.generation_timeout_seconds))
+        deadline = _generation_deadline(self.settings, generation_settings.source_type)
         last_error: Exception | None = None
+        attempt = 0
+        max_attempts = _max_generation_attempts(generation_settings.source_type)
 
-        for attempt in range(3):
-            remaining = deadline - time.monotonic()
-            if remaining <= 1.0:
+        while attempt < max_attempts:
+            attempt_index = attempt
+            attempt += 1
+            remaining = _remaining_seconds(deadline)
+            if remaining is not None and remaining <= 1.0:
                 break
 
             try:
-                payload["temperature"] = _retry_temperature(generation_settings.source_type, attempt)
-                timeout = httpx.Timeout(max(5.0, remaining - 0.5), connect=min(6.0, max(2.0, remaining / 4)))
+                update_ai_quiz_progress(generation_settings.progress_id, 25, "AI generation started")
+                payload["temperature"] = _retry_temperature(generation_settings.source_type, attempt_index)
+                timeout = _openrouter_request_timeout(generation_settings.source_type, deadline)
                 client = await _get_openrouter_client()
                 response = await client.post(url, json=payload, headers=headers, timeout=timeout)
                 response.raise_for_status()
-                parsed_payload = self._extract_response_payload(response.json())
+                response_payload = response.json()
+                update_ai_quiz_progress(generation_settings.progress_id, 60, "Questions generated")
+                parsed_payload = self._extract_response_payload(response_payload)
+                update_ai_quiz_progress(generation_settings.progress_id, 80, "Quiz JSON formatted")
                 try:
                     quiz = self._validate_parsed_payload(parsed_payload, generation_settings)
                 except QuizValidationError as exc:
@@ -166,10 +178,18 @@ class OpenRouterService:
                             model_name,
                             generation_settings.question_count,
                         )
+                        update_ai_quiz_progress(
+                            generation_settings.progress_id,
+                            90,
+                            "Validation completed",
+                        )
                         _set_cached_quiz(cache_key, completed_quiz)
+                        complete_ai_quiz_progress(generation_settings.progress_id)
                         return completed_quiz
                     raise exc
+                update_ai_quiz_progress(generation_settings.progress_id, 90, "Validation completed")
                 _set_cached_quiz(cache_key, quiz)
+                complete_ai_quiz_progress(generation_settings.progress_id)
                 return quiz
             except httpx.TimeoutException as exc:
                 last_error = exc
@@ -183,10 +203,12 @@ class OpenRouterService:
                     logger.info("OpenRouter model rejected response_format; retrying without strict JSON mode.")
                     payload.pop("response_format", None)
                     last_error = exc
+                    if attempt >= max_attempts:
+                        max_attempts += 1
                     continue
                 if exc.response.status_code in {400, 401, 402, 403, 404}:
                     raise HTTPException(status_code=exc.response.status_code, detail=detail) from exc
-                if exc.response.status_code in {408, 429, 500, 502, 503, 504} and attempt == 2:
+                if exc.response.status_code in {408, 429, 500, 502, 503, 504} and attempt >= max_attempts:
                     raise HTTPException(
                         status_code=exc.response.status_code,
                         detail=_provider_retry_exhausted_message(
@@ -200,7 +222,7 @@ class OpenRouterService:
             except (KeyError, TypeError, ValueError, QuizValidationError) as exc:
                 logger.warning(
                     "OpenRouter returned unusable quiz JSON on attempt %s model=%s source=%s: %s",
-                    attempt + 1,
+                    attempt,
                     model_name,
                     generation_settings.source_type,
                     exc,
@@ -211,15 +233,18 @@ class OpenRouterService:
                     repair=True,
                 )
                 last_error = exc
+                if generation_settings.source_type == "prompt":
+                    break
 
-            remaining = deadline - time.monotonic()
-            if attempt < 2 and remaining > 2.0:
-                await asyncio.sleep(min(0.8, 0.3 + attempt * 0.2))
+            remaining = _remaining_seconds(deadline)
+            if attempt < max_attempts and (remaining is None or remaining > 2.0):
+                await asyncio.sleep(min(0.8, 0.3 + attempt_index * 0.2))
 
-        if isinstance(last_error, httpx.TimeoutException) or (deadline - time.monotonic()) <= 1.0:
+        remaining = _remaining_seconds(deadline)
+        if isinstance(last_error, httpx.TimeoutException) or (remaining is not None and remaining <= 1.0):
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail=f"{_source_label(generation_settings.source_type)} quiz generation took too long. Try fewer questions or a smaller source.",
+                detail=_timeout_error_message(generation_settings.source_type),
             ) from last_error
 
         raise HTTPException(
@@ -236,7 +261,7 @@ class OpenRouterService:
         generation_settings: QuizGenerationSettings,
         headers: dict[str, str],
         url: str,
-        deadline: float,
+        deadline: float | None,
     ) -> GeneratedQuiz | None:
         if generation_settings.source_type != "prompt":
             return None
@@ -257,8 +282,8 @@ class OpenRouterService:
         if missing_count <= 0 or not partial_questions:
             return None
 
-        remaining = deadline - time.monotonic()
-        if remaining <= 8.0:
+        remaining = _remaining_seconds(deadline)
+        if remaining is not None and remaining <= 8.0:
             return None
 
         existing_question_text = "\n".join(
@@ -292,13 +317,13 @@ Generate exactly {missing_count} additional unique multiple-choice {missing_labe
         }
         last_error: Exception | None = None
 
-        for attempt in range(2):
-            remaining = deadline - time.monotonic()
-            if remaining <= 4.0:
+        for attempt in range(_max_repair_attempts(generation_settings.source_type)):
+            remaining = _remaining_seconds(deadline)
+            if remaining is not None and remaining <= 4.0:
                 break
 
             try:
-                timeout = httpx.Timeout(max(4.0, remaining - 0.5), connect=min(5.0, max(2.0, remaining / 4)))
+                timeout = _openrouter_request_timeout(generation_settings.source_type, deadline)
                 client = await _get_openrouter_client()
                 response = await client.post(url, json=payload, headers=headers, timeout=timeout)
                 response.raise_for_status()
@@ -337,7 +362,8 @@ Generate exactly {missing_count} additional unique multiple-choice {missing_labe
                 )
                 payload["messages"] = _build_generation_messages(repair_content, repair_settings, repair=True)
 
-            if attempt == 0 and deadline - time.monotonic() > 5.0:
+            remaining = _remaining_seconds(deadline)
+            if attempt == 0 and (remaining is None or remaining > 5.0):
                 await asyncio.sleep(0.2)
 
         if last_error:
@@ -518,6 +544,36 @@ def _retry_temperature(source_type: GenerationSource, attempt: int) -> float:
     return 0.08 if source_type in {"pdf", "url", "file"} else 0.12
 
 
+def _generation_deadline(settings: Settings, source_type: GenerationSource) -> float | None:
+    if source_type == "prompt":
+        return None
+    return time.monotonic() + min(150.0, max(30.0, settings.source_generation_timeout_seconds))
+
+
+def _remaining_seconds(deadline: float | None) -> float | None:
+    if deadline is None:
+        return None
+    return deadline - time.monotonic()
+
+
+def _openrouter_request_timeout(source_type: GenerationSource, deadline: float | None) -> httpx.Timeout:
+    if source_type == "prompt":
+        return httpx.Timeout(None, connect=6.0)
+
+    remaining = _remaining_seconds(deadline)
+    if remaining is None:
+        return httpx.Timeout(120.0, connect=6.0)
+    return httpx.Timeout(max(5.0, remaining - 0.5), connect=min(6.0, max(2.0, remaining / 4)))
+
+
+def _max_generation_attempts(source_type: GenerationSource) -> int:
+    return 1 if source_type == "prompt" else 3
+
+
+def _max_repair_attempts(source_type: GenerationSource) -> int:
+    return 1 if source_type == "prompt" else 2
+
+
 def _max_tokens(question_count: int) -> int:
     return min(9000, max(1800, 760 + question_count * 230))
 
@@ -605,6 +661,12 @@ def _missing_openrouter_key_message(source_type: GenerationSource) -> str:
             "and Render, then restart the backend."
         )
     return "OpenRouter API key is missing. Add OPENROUTER_API_KEY in backend/.env and restart the backend."
+
+
+def _timeout_error_message(source_type: GenerationSource) -> str:
+    if source_type == "prompt":
+        return "AI quiz provider connection timed out before generation started. Try again shortly."
+    return f"{_source_label(source_type)} quiz generation took too long. Try fewer questions or a smaller source."
 
 
 def _provider_retry_exhausted_message(
