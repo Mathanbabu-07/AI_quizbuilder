@@ -41,9 +41,9 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
   return (
     <motion.section
       className="relative z-10 flex min-h-dvh items-start justify-center px-4 pb-10 pt-16 sm:grid sm:place-items-center sm:px-8 sm:py-24"
-      initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -28, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 36 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -28 }}
       transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="relative w-full max-w-5xl text-center">
@@ -149,3 +149,4 @@ export function QuizResultsScreen({ result, onRestart, leaderboard = [], current
     </motion.section>
   );
 }
+

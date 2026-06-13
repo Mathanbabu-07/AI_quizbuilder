@@ -13,8 +13,8 @@ export function RoomCodePanel({ code, compact = false }: RoomCodePanelProps) {
   return (
     <motion.div
       className="relative isolate overflow-hidden rounded-3xl border border-cyan-100/18 bg-slate-950/38 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.34),0_0_44px_rgba(34,211,238,0.13)] backdrop-blur-2xl"
-      initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
     >
       <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-transparent" />
@@ -42,3 +42,4 @@ export function RoomCodePanel({ code, compact = false }: RoomCodePanelProps) {
     </motion.div>
   );
 }
+

@@ -2,6 +2,8 @@
 
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import type { ComponentType, MouseEvent, ReactNode, SVGProps } from "react";
+import { useRef } from "react";
+import { useFinePointer } from "@/hooks/useFinePointer";
 
 type MagneticNavButtonProps = {
   children: ReactNode;
@@ -32,14 +34,22 @@ export function MagneticNavButton({
   const y = useMotionValue(0);
   const springX = useSpring(x, { stiffness: 260, damping: 22, mass: 0.35 });
   const springY = useSpring(y, { stiffness: 260, damping: 22, mass: 0.35 });
+  const finePointer = useFinePointer();
+  const boundsRef = useRef<DOMRect | null>(null);
 
   const handleMouseMove = (event: MouseEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
+    if (!finePointer) {
+      return;
+    }
+
+    const rect = boundsRef.current ?? event.currentTarget.getBoundingClientRect();
+    boundsRef.current = rect;
     x.set((event.clientX - rect.left - rect.width / 2) * 0.08);
     y.set((event.clientY - rect.top - rect.height / 2) * 0.12);
   };
 
   const reset = () => {
+    boundsRef.current = null;
     x.set(0);
     y.set(0);
   };
@@ -49,7 +59,10 @@ export function MagneticNavButton({
       type="button"
       aria-label={ariaLabel}
       onClick={onClick}
-      onMouseMove={handleMouseMove}
+      onMouseEnter={(event) => {
+        boundsRef.current = event.currentTarget.getBoundingClientRect();
+      }}
+      onMouseMove={finePointer ? handleMouseMove : undefined}
       onMouseLeave={reset}
       onBlur={reset}
       style={{ x: springX, y: springY }}

@@ -5,7 +5,7 @@ type FloatingGlowProps = {
 export function FloatingGlow({ className = "" }: FloatingGlowProps) {
   return (
     <div
-      className={`pointer-events-none absolute rounded-full blur-3xl ${className}`}
+      className={`pointer-events-none absolute hidden rounded-full blur-3xl sm:block ${className}`}
       aria-hidden="true"
     />
   );

@@ -15,9 +15,9 @@ export function MultiplayerResultsWaiting({ room }: MultiplayerResultsWaitingPro
   return (
     <motion.section
       className="relative z-10 grid min-h-dvh place-items-center px-4 py-24 sm:px-8"
-      initial={{ opacity: 0, y: 32, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 32 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/34 p-6 text-center shadow-[0_28px_100px_rgba(0,0,0,0.36)] backdrop-blur-2xl sm:p-9">
@@ -72,3 +72,4 @@ export function MultiplayerResultsWaiting({ room }: MultiplayerResultsWaitingPro
     </motion.section>
   );
 }
+

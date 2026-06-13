@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -21,7 +21,7 @@ type AnimatedSelectProps = {
   icon: IconType;
 };
 
-export function AnimatedSelect({ label, value, options, onChange, icon: Icon }: AnimatedSelectProps) {
+function AnimatedSelectComponent({ label, value, options, onChange, icon: Icon }: AnimatedSelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
@@ -54,8 +54,6 @@ export function AnimatedSelect({ label, value, options, onChange, icon: Icon }: 
         type="button"
         className="group relative isolate flex min-h-24 w-full items-center gap-4 overflow-hidden rounded-2xl border border-white/12 bg-white/[0.065] px-5 py-4 text-left shadow-[0_18px_52px_rgba(0,0,0,0.28)] outline-none backdrop-blur-2xl transition-colors duration-300 hover:border-cyan-100/28 focus-visible:ring-2 focus-visible:ring-cyan-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-6"
         onClick={() => setOpen((current) => !current)}
-        whileHover={{ y: -2 }}
-        whileTap={{ scale: 0.99 }}
         transition={{ type: "spring", stiffness: 320, damping: 28 }}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -81,9 +79,9 @@ export function AnimatedSelect({ label, value, options, onChange, icon: Icon }: 
         {open ? (
           <motion.div
             className="absolute left-0 right-0 top-[calc(100%+0.6rem)] z-30 overflow-hidden rounded-2xl border border-white/14 bg-slate-950/88 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.46),0_0_40px_rgba(34,211,238,0.12)] backdrop-blur-2xl"
-            initial={{ opacity: 0, y: -8, scale: 0.98, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -8, scale: 0.98, filter: "blur(8px)" }}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             role="listbox"
           >
@@ -113,3 +111,6 @@ export function AnimatedSelect({ label, value, options, onChange, icon: Icon }: 
     </div>
   );
 }
+
+export const AnimatedSelect = memo(AnimatedSelectComponent);
+

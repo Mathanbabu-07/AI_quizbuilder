@@ -30,6 +30,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+main {
+  isolation: isolate;
+}
+
 button {
   font: inherit;
   touch-action: manipulation;
@@ -40,6 +44,17 @@ input,
 select,
 button {
   -webkit-tap-highlight-color: transparent;
+}
+
+textarea,
+input,
+select {
+  transform: translateZ(0);
+  caret-color: rgb(103 232 249);
+}
+
+textarea {
+  overflow-wrap: break-word;
 }
 
 ::selection {
@@ -54,6 +69,21 @@ button {
 
   to {
     background-position: 240% 50%;
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    overscroll-behavior-y: auto;
+  }
+
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
   }
 }
 

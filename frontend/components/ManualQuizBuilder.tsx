@@ -173,9 +173,9 @@ export function ManualQuizBuilder({
   return (
     <motion.section
       className="relative z-10 min-h-dvh px-3 py-20 sm:px-8 sm:py-24"
-      initial={{ opacity: 0, y: 34, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 34 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="mx-auto grid w-full max-w-[92rem] gap-4 sm:gap-6 xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -427,3 +427,4 @@ function clampQuestionCount(value: number) {
 
   return Math.min(100, Math.max(1, Math.floor(value)));
 }
+

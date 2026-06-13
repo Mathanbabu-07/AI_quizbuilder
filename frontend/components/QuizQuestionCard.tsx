@@ -26,9 +26,9 @@ export function QuizQuestionCard({
   return (
     <motion.article
       className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/[0.06] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.34)] backdrop-blur-2xl sm:p-6 lg:p-7"
-      initial={{ opacity: 0, y: 24, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -22, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -22 }}
       transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.8),transparent)]" />
@@ -85,3 +85,4 @@ function splitCodeFromText(text: string): { prose: string; code: string | null }
 
   return { prose: "Analyze this snippet and choose the best answer.", code: text.trim() };
 }
+

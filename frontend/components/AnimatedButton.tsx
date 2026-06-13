@@ -3,6 +3,8 @@
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
+import { useRef } from "react";
+import { useFinePointer } from "@/hooks/useFinePointer";
 
 type AnimatedButtonProps = {
   children: ReactNode;
@@ -16,9 +18,16 @@ export function AnimatedButton({ children, type = "button", onClick, disabled = 
   const y = useMotionValue(0);
   const springX = useSpring(x, { stiffness: 220, damping: 18, mass: 0.35 });
   const springY = useSpring(y, { stiffness: 220, damping: 18, mass: 0.35 });
+  const finePointer = useFinePointer();
+  const boundsRef = useRef<DOMRect | null>(null);
 
   const handleMouseMove = (event: MouseEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
+    if (!finePointer) {
+      return;
+    }
+
+    const rect = boundsRef.current ?? event.currentTarget.getBoundingClientRect();
+    boundsRef.current = rect;
     const nextX = (event.clientX - rect.left - rect.width / 2) * 0.16;
     const nextY = (event.clientY - rect.top - rect.height / 2) * 0.22;
 
@@ -27,6 +36,7 @@ export function AnimatedButton({ children, type = "button", onClick, disabled = 
   };
 
   const resetMagnet = () => {
+    boundsRef.current = null;
     x.set(0);
     y.set(0);
   };
@@ -38,10 +48,13 @@ export function AnimatedButton({ children, type = "button", onClick, disabled = 
       disabled={disabled}
       className="group relative isolate inline-flex h-16 min-w-56 items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/35 px-9 font-display text-sm font-extrabold uppercase text-white shadow-[0_0_44px_rgba(34,211,238,0.28),0_18px_58px_rgba(0,0,0,0.38)] outline-none backdrop-blur-xl transition-colors duration-300 hover:border-white/60 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:border-cyan-100/35"
       style={{ x: springX, y: springY }}
-      onMouseMove={disabled ? undefined : handleMouseMove}
+      onMouseEnter={(event) => {
+        boundsRef.current = event.currentTarget.getBoundingClientRect();
+      }}
+      onMouseMove={disabled || !finePointer ? undefined : handleMouseMove}
       onMouseLeave={resetMagnet}
       onBlur={resetMagnet}
-      whileHover={disabled ? undefined : { scale: 1.045, rotate: -0.4 }}
+      whileHover={disabled ? undefined : { scale: 1.035 }}
       whileTap={disabled ? undefined : { scale: 0.97 }}
       transition={{ type: "spring", stiffness: 380, damping: 24 }}
     >

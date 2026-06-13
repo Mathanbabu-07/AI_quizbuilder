@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { memo } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 
 type AnimatedInputProps = {
@@ -18,7 +18,7 @@ type AnimatedInputProps = {
   helper?: ReactNode;
 };
 
-export function AnimatedInput({
+function AnimatedInputComponent({
   label,
   value,
   onChange,
@@ -36,10 +36,8 @@ export function AnimatedInput({
     "peer w-full border-0 bg-transparent font-sans text-base font-semibold text-white outline-none placeholder:text-white/28";
 
   return (
-    <motion.label
+    <label
       className="group relative isolate block overflow-hidden rounded-2xl border border-white/12 bg-white/[0.065] p-[1px] shadow-[0_18px_52px_rgba(0,0,0,0.28)] backdrop-blur-2xl"
-      whileHover={{ y: -2 }}
-      transition={{ type: "spring", stiffness: 320, damping: 28 }}
     >
       <span className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,transparent,rgba(103,232,249,0.26),transparent,rgba(240,171,252,0.18),transparent)] bg-[length:260%_100%] opacity-0 transition-opacity duration-300 group-focus-within:opacity-100 motion-safe:group-focus-within:animate-[shine_4.5s_linear_infinite]" />
       <span className="absolute inset-[1px] -z-10 rounded-[15px] bg-slate-950/48" />
@@ -82,6 +80,8 @@ export function AnimatedInput({
           {helper ? <span className="mt-3 block">{helper}</span> : null}
         </span>
       </span>
-    </motion.label>
+    </label>
   );
 }
+
+export const AnimatedInput = memo(AnimatedInputComponent);

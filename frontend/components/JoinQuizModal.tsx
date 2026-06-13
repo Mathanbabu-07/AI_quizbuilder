@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motion";
 import { ArrowRight, LogIn, RadioTower, X } from "lucide-react";
 import { InvalidRoomAnimation } from "@/components/InvalidRoomAnimation";
+import { useFinePointer } from "@/hooks/useFinePointer";
 
 type JoinQuizModalProps = {
   open: boolean;
@@ -19,6 +20,8 @@ export function JoinQuizModal({ open, isJoining, errorMessage, onClose, onJoin }
   const y = useMotionValue(0);
   const springX = useSpring(x, { stiffness: 240, damping: 20, mass: 0.35 });
   const springY = useSpring(y, { stiffness: 240, damping: 20, mass: 0.35 });
+  const finePointer = useFinePointer();
+  const buttonBoundsRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -55,9 +58,9 @@ export function JoinQuizModal({ open, isJoining, errorMessage, onClose, onJoin }
           <motion.form
             onSubmit={submit}
             className="relative isolate w-full max-w-lg overflow-hidden rounded-[2rem] border border-cyan-100/18 bg-slate-950/58 p-5 shadow-[0_30px_100px_rgba(0,0,0,0.52),0_0_70px_rgba(34,211,238,0.14)] backdrop-blur-2xl sm:p-7"
-            initial={{ opacity: 0, y: 24, scale: 0.96, filter: "blur(12px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: 18, scale: 0.97, filter: "blur(10px)" }}
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.97 }}
             transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
           >
             <span className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/80 to-transparent" />
@@ -102,12 +105,21 @@ export function JoinQuizModal({ open, isJoining, errorMessage, onClose, onJoin }
               disabled={isJoining}
               className="group relative mt-6 inline-flex h-14 w-full items-center justify-center overflow-hidden rounded-2xl border border-cyan-100/30 px-6 font-display text-sm font-extrabold uppercase tracking-[0.14em] text-white shadow-[0_0_42px_rgba(34,211,238,0.22),0_18px_48px_rgba(0,0,0,0.34)] outline-none transition-colors duration-300 disabled:cursor-wait disabled:opacity-70"
               style={{ x: springX, y: springY }}
+              onMouseEnter={(event) => {
+                buttonBoundsRef.current = event.currentTarget.getBoundingClientRect();
+              }}
               onMouseMove={(event) => {
-                const rect = event.currentTarget.getBoundingClientRect();
+                if (!finePointer) {
+                  return;
+                }
+
+                const rect = buttonBoundsRef.current ?? event.currentTarget.getBoundingClientRect();
+                buttonBoundsRef.current = rect;
                 x.set((event.clientX - rect.left - rect.width / 2) * 0.08);
                 y.set((event.clientY - rect.top - rect.height / 2) * 0.12);
               }}
               onMouseLeave={() => {
+                buttonBoundsRef.current = null;
                 x.set(0);
                 y.set(0);
               }}
@@ -125,3 +137,4 @@ export function JoinQuizModal({ open, isJoining, errorMessage, onClose, onJoin }
     </AnimatePresence>
   );
 }
+

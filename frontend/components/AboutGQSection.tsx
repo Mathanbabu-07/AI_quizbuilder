@@ -143,8 +143,8 @@ function SignalCard({ item, index }: { item: Feature; index: number }) {
   return (
     <motion.article
       className="group relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.055] p-5 shadow-[0_18px_58px_rgba(0,0,0,0.28)] backdrop-blur-2xl"
-      initial={{ opacity: 0, y: 24, filter: "blur(10px)" }}
-      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.28 }}
       transition={{ delay: index * 0.08, duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -5 }}
@@ -290,3 +290,4 @@ export function AboutGQSection({ sectionRef }: AboutGQSectionProps) {
     </section>
   );
 }
+

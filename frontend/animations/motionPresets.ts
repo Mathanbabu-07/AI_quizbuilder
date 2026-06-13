@@ -14,13 +14,11 @@ export const heroContainer: Variants = {
 export const heroItem: Variants = {
   hidden: {
     opacity: 0,
-    y: 22,
-    filter: "blur(10px)"
+    y: 22
   },
   visible: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: {
       duration: 0.8,
       ease: [0.22, 1, 0.36, 1]
@@ -36,3 +34,4 @@ export const floatLoop = {
     ease: "easeInOut"
   } satisfies Transition
 };
+

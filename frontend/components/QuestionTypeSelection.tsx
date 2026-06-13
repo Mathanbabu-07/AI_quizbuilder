@@ -37,9 +37,9 @@ export function QuestionTypeSelection({
   return (
     <motion.section
       className="relative z-10 min-h-dvh px-4 py-24 sm:px-8"
-      initial={{ opacity: 0, y: 34, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 34 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="mx-auto grid w-full max-w-[88rem] gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -101,3 +101,4 @@ export function QuestionTypeSelection({
     </motion.section>
   );
 }
+

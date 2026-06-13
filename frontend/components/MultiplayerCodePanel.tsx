@@ -12,9 +12,9 @@ export function MultiplayerCodePanel({ code }: MultiplayerCodePanelProps) {
   return (
     <motion.aside
       className="relative isolate overflow-hidden rounded-3xl border border-cyan-100/20 bg-slate-950/36 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.34),0_0_42px_rgba(34,211,238,0.12)] backdrop-blur-2xl sm:p-5"
-      initial={{ opacity: 0, x: -18, scale: 0.97, filter: "blur(10px)" }}
-      animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
-      exit={{ opacity: 0, x: -14, scale: 0.97, filter: "blur(8px)" }}
+      initial={{ opacity: 0, x: -18, scale: 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -14, scale: 0.97 }}
       transition={{ type: "spring", stiffness: 240, damping: 28, mass: 0.8 }}
     >
       <motion.span
@@ -55,3 +55,4 @@ export function MultiplayerCodePanel({ code }: MultiplayerCodePanelProps) {
     </motion.aside>
   );
 }
+

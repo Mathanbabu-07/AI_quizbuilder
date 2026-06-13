@@ -20,9 +20,9 @@ export function HostParticipantsPanel({ room, status, errorMessage, className = 
   return (
     <motion.aside
       className={`relative isolate overflow-hidden rounded-3xl border border-white/12 bg-white/[0.055] shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl ${className}`}
-      initial={{ opacity: 0, x: 18, filter: "blur(10px)" }}
-      animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, x: 14, filter: "blur(8px)" }}
+      initial={{ opacity: 0, x: 18 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 14 }}
       transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
     >
       <span className="absolute right-0 top-0 -z-10 size-32 translate-x-1/3 -translate-y-1/3 rounded-full bg-emerald-300/12 blur-3xl" />
@@ -81,3 +81,4 @@ export function HostParticipantsPanel({ room, status, errorMessage, className = 
     </motion.aside>
   );
 }
+

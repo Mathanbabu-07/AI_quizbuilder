@@ -659,7 +659,7 @@ export function HeroSection() {
         {screen === "home" ? (
           <motion.div
             key="home"
-            exit={{ opacity: 0, y: -72, scale: 0.97, filter: "blur(16px)" }}
+            exit={{ opacity: 0, y: -72, scale: 0.97 }}
             transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
           >
             <section className="relative isolate flex min-h-[100svh] items-start justify-center overflow-hidden px-4 pb-14 pt-[11rem] sm:min-h-svh sm:items-center sm:px-8 sm:py-24">
@@ -795,3 +795,4 @@ export function HeroSection() {
     </div>
   );
 }
+

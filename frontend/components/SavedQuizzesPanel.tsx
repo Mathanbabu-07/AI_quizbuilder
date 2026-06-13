@@ -35,7 +35,7 @@ export function SavedQuizzesPanel({ quizzes, loading = false, onOpen, onDelete }
               <motion.div
                 key={quiz.id}
                 layout
-                exit={{ opacity: 0, x: -18, scale: 0.96, filter: "blur(8px)" }}
+                exit={{ opacity: 0, x: -18, scale: 0.96 }}
                 className="group rounded-2xl border border-white/10 bg-slate-950/24 p-3 transition-colors duration-200 hover:border-cyan-100/26 hover:bg-cyan-100/[0.055]"
               >
                 <button type="button" onClick={() => onOpen(quiz.id)} className="block w-full text-left">
@@ -65,3 +65,4 @@ export function SavedQuizzesPanel({ quizzes, loading = false, onOpen, onDelete }
     </aside>
   );
 }
+

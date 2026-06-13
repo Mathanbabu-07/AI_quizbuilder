@@ -38,8 +38,8 @@ export function GameArenaPlaceholder({ game }: GameArenaPlaceholderProps) {
   return (
     <motion.section
       className="relative z-10 flex min-h-svh items-center justify-center overflow-hidden px-4 py-24 text-white sm:px-8"
-      initial={{ opacity: 0, y: 24, filter: "blur(10px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -119,3 +119,4 @@ export function GameArenaPlaceholder({ game }: GameArenaPlaceholderProps) {
     </motion.section>
   );
 }
+

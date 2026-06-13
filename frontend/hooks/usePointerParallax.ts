@@ -15,9 +15,20 @@ export function usePointerParallax(strength = 1): PointerParallax {
   const y = useSpring(rawY, { stiffness: 70, damping: 28, mass: 0.5 });
 
   useEffect(() => {
+    const canTrackPointer = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 768px)").matches;
+    if (!canTrackPointer) {
+      rawX.set(0);
+      rawY.set(0);
+      return;
+    }
+
     let frame = 0;
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (document.hidden) {
+        return;
+      }
+
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         const x = (event.clientX / window.innerWidth - 0.5) * strength;

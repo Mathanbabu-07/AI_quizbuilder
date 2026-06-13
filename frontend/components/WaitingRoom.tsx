@@ -20,9 +20,9 @@ export function WaitingRoom({ room, participantId, onUpdateName, onLeave }: Wait
   return (
     <motion.section
       className="relative z-10 flex min-h-dvh justify-center px-4 py-20 sm:px-8 sm:py-24"
-      initial={{ opacity: 0, y: 32, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 32 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="w-full max-w-5xl">
@@ -85,3 +85,4 @@ export function WaitingRoom({ room, participantId, onUpdateName, onLeave }: Wait
     </motion.section>
   );
 }
+

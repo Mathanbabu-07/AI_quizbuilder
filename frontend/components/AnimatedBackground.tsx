@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion, useTransform } from "framer-motion";
 import { BrainCircuit, CircleDot, Sparkle, Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AmbientGlowLayer } from "@/components/AmbientGlowLayer";
 import { usePointerParallax } from "@/hooks/usePointerParallax";
 
@@ -66,7 +67,8 @@ const arenaGlyphs = [
 export function AnimatedBackground() {
   const parallax = usePointerParallax(28);
   const reduceMotion = useReducedMotion();
-  const motionEnabled = !reduceMotion;
+  const [richMotion, setRichMotion] = useState(false);
+  const motionEnabled = !reduceMotion && richMotion;
   const glowOneX = useTransform(parallax.x, (value) => value * 0.55);
   const glowOneY = useTransform(parallax.y, (value) => value * 0.4);
   const glowTwoX = useTransform(parallax.x, (value) => value * -0.45);
@@ -77,6 +79,14 @@ export function AnimatedBackground() {
   const particleY = useTransform(parallax.y, (value) => value * 0.22);
   const glowParticleX = useTransform(parallax.x, (value) => value * 0.14);
   const glowParticleY = useTransform(parallax.y, (value) => value * 0.16);
+
+  useEffect(() => {
+    const media = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 768px)");
+    const update = () => setRichMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   return (
     <div className="pointer-events-none absolute inset-0 isolate overflow-hidden" aria-hidden="true">

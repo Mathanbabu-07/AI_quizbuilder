@@ -40,9 +40,9 @@ export function QuizReviewPanel({
   return (
     <motion.section
       className="relative z-10 flex min-h-dvh justify-center px-4 py-20 sm:px-8 sm:py-24 xl:px-10"
-      initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -28, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 36 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -28 }}
       transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="grid w-full max-w-[94rem] gap-5 xl:grid-cols-[minmax(250px,300px)_minmax(0,1fr)_minmax(280px,340px)] xl:items-start">
@@ -150,3 +150,4 @@ export function QuizReviewPanel({
     </motion.section>
   );
 }
+

@@ -21,8 +21,8 @@ export function FloatingGameIcons() {
   return (
     <motion.div
       className="pointer-events-auto absolute left-4 top-20 hidden h-44 w-44 sm:left-8 sm:top-8 sm:block lg:left-10 lg:top-10"
-      initial={{ opacity: 0, x: -18, filter: "blur(10px)" }}
-      animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, x: -18 }}
+      animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
       aria-hidden="true"
     >
@@ -41,3 +41,4 @@ export function FloatingGameIcons() {
     </motion.div>
   );
 }
+

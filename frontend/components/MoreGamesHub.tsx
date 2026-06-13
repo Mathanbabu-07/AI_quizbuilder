@@ -164,8 +164,8 @@ function GameCard({ game, index }: { game: GameMode; index: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.58, delay: 0.08 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
     >
       <motion.button
@@ -224,9 +224,9 @@ export function MoreGamesHub({ onBack }: MoreGamesHubProps) {
   return (
     <motion.section
       className="relative isolate z-10 min-h-dvh overflow-hidden px-4 py-24 sm:px-8"
-      initial={{ opacity: 0, y: 34, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -24, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 34 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
       transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -283,3 +283,4 @@ export function MoreGamesHub({ onBack }: MoreGamesHubProps) {
     </motion.section>
   );
 }
+

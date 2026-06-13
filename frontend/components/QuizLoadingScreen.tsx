@@ -35,9 +35,9 @@ export function QuizLoadingScreen({ progress, stage }: QuizLoadingScreenProps) {
   return (
     <motion.section
       className="relative z-10 grid min-h-dvh place-items-center px-5 py-24 text-center sm:px-8"
-      initial={{ opacity: 0, y: 30, filter: "blur(14px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -28, filter: "blur(12px)" }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -28 }}
       transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="relative flex w-full max-w-xl flex-col items-center">
@@ -91,9 +91,9 @@ export function QuizLoadingScreen({ progress, stage }: QuizLoadingScreenProps) {
         <motion.p
           key={messageIndex}
           className="relative mt-4 min-h-8 font-sans text-xl font-semibold text-white/74 sm:text-2xl"
-          initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: -10, filter: "blur(8px)" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.45 }}
         >
           {messages[messageIndex]}
@@ -116,3 +116,4 @@ export function QuizLoadingScreen({ progress, stage }: QuizLoadingScreenProps) {
     </motion.section>
   );
 }
+
