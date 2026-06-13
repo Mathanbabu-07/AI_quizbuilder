@@ -6,7 +6,7 @@ Difficulty = Literal["Easy", "Medium", "Hard", "Very Hard"]
 
 
 class GenerateQuizRequest(BaseModel):
-    prompt: str = Field(..., min_length=3, max_length=500)
+    prompt: str = Field(..., min_length=0, max_length=500)
     question_count: int = Field(..., ge=10, le=50)
     difficulty: Difficulty
     time_per_question: int = Field(..., ge=5, le=300)

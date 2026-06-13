@@ -39,6 +39,12 @@ async def generate_ai_quiz(
         len(request.prompt),
     )
     start_ai_quiz_progress(request.progress_id)
+
+    if len(request.prompt.strip()) < 3:
+        fail_ai_quiz_progress(request.progress_id, "Please enter a topic.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Please enter a topic.")
+
+    request.prompt = request.prompt.strip()
     update_ai_quiz_progress(request.progress_id, 10, "Prompt validated")
 
     try:

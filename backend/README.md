@@ -1,6 +1,6 @@
 # GENQUIZ Backend
 
-FastAPI backend for AI quiz generation through OpenRouter.
+FastAPI backend for GENQUIZ quiz generation.
 
 ## Setup
 
@@ -16,10 +16,10 @@ Set environment variables from `.env.example`.
 Optional performance settings:
 
 ```env
+GEMINI_API_KEY=
+GEMINI_AI_MODEL=gemini-3.1-flash-lite
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_API_KEY=
-OPENROUTER_AI_API_KEY=
-OPENROUTER_AI_MODEL=nvidia/nemotron-3-ultra-550b-a55b
 OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
 OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 SCRAPEDO_API_KEY=
@@ -59,11 +59,11 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - `POST /api/multiplayer/join-room`
 - `POST /api/multiplayer/start`
 
-The text AI quiz endpoint calls OpenRouter using `OPENROUTER_AI_API_KEY` and `OPENROUTER_AI_MODEL`, defaulting to `nvidia/nemotron-3-ultra-550b-a55b`.
+The text AI quiz endpoint calls Gemini using `GEMINI_API_KEY` and `GEMINI_AI_MODEL`, defaulting to `gemini-3.1-flash-lite`.
 The PDF/PPT file generation endpoint uses `OPENROUTER_PDF_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
 The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
-OpenRouter calls are async, pooled, validated as structured quiz JSON, and briefly cached for identical generation requests.
-AI prompt generation has no read timeout and uses one primary generation request, with one targeted repair request only if the model returns too few questions. PDF/PPT and URL source generation keep internal safety timeouts and retries for large extracted sources.
+Gemini and OpenRouter calls are async, pooled, validated as structured quiz JSON, and briefly cached for identical generation requests.
+AI prompt generation uses Gemini structured JSON output with up to 3 validation-aware attempts. PDF/PPT and URL source generation keep their existing OpenRouter safety timeouts and retries for large extracted sources.
 
 PDF upload extraction uses PyMuPDF. PPTX extraction uses python-pptx. Run `supabase/ai_file_quiz_schema.sql`
 to add generated quiz and room persistence tables.

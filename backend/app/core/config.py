@@ -10,10 +10,10 @@ load_dotenv(BASE_DIR / ".env", encoding="utf-8-sig")
 
 
 class Settings(BaseModel):
+    gemini_api_key: str = ""
+    gemini_ai_model: str = "gemini-3.1-flash-lite"
     openrouter_api_key: str = ""
-    openrouter_ai_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
     openrouter_file_model: str = "nvidia/nemotron-3-nano-30b-a3b:free"
     openrouter_url_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
     openrouter_url_fallback_model: str = ""
@@ -116,10 +116,10 @@ def get_settings() -> Settings:
     frontend_urls = _unique_urls([frontend_url, *_csv_env("FRONTEND_URLS")])
 
     return Settings(
+        gemini_api_key=_secret_env("GEMINI_API_KEY"),
+        gemini_ai_model=_text_env("GEMINI_AI_MODEL", "gemini-3.1-flash-lite"),
         openrouter_api_key=_secret_env("OPENROUTER_API_KEY"),
-        openrouter_ai_api_key=_secret_env("OPENROUTER_AI_API_KEY"),
         openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/"),
-        openrouter_model=_openrouter_model_env("OPENROUTER_AI_MODEL", "nvidia/nemotron-3-ultra-550b-a55b"),
         openrouter_file_model=_text_env_any(
             ("OPENROUTER_PDF_MODEL", "OPENROUTER_FILE_MODEL"),
             "nvidia/nemotron-3-nano-30b-a3b:free",

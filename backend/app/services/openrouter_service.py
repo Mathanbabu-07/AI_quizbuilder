@@ -102,10 +102,9 @@ class OpenRouterService:
     settings: Settings
 
     async def generate_quiz(self, request: GenerateQuizRequest) -> GeneratedQuiz:
-        return await self.generate_quiz_with_model(
-            model_name=self.settings.openrouter_model,
-            content=request.prompt,
-            generation_settings=QuizGenerationSettings.from_prompt(self.settings, request),
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="AI quiz generation now uses Gemini. Use AIQuizPipeline for prompt-based generation.",
         )
 
     async def generate_quiz_with_model(
@@ -427,7 +426,7 @@ Generate exactly {missing_count} additional unique multiple-choice {missing_labe
 
     def _api_key_for_source(self, source_type: GenerationSource) -> str:
         if source_type == "prompt":
-            return self.settings.openrouter_ai_api_key
+            return ""
         return self.settings.openrouter_api_key
 
     def _headers(self, api_key: str) -> dict[str, str]:
@@ -753,10 +752,7 @@ def _source_label(source_type: GenerationSource) -> str:
 
 def _missing_openrouter_key_message(source_type: GenerationSource) -> str:
     if source_type == "prompt":
-        return (
-            "AI quiz OpenRouter API key is missing. Add OPENROUTER_AI_API_KEY in backend/.env "
-            "and Render, then restart the backend."
-        )
+        return "AI quiz generation now uses Gemini. Add GEMINI_API_KEY in backend/.env and Render."
     return "OpenRouter API key is missing. Add OPENROUTER_API_KEY in backend/.env and restart the backend."
 
 

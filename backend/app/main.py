@@ -16,6 +16,7 @@ from app.api.pdf_quiz import router as pdf_quiz_router
 from app.api.quiz import router as quiz_router
 from app.api.url_quiz import router as url_quiz_router
 from app.core.config import get_settings
+from app.services.gemini_service import close_gemini_client
 from app.services.openrouter_service import close_openrouter_client
 from app.services.supabase_client import get_supabase_diagnostics
 from app.sockets.server import sio
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI):
     logger.info("CORS origins=%s regex=%s", settings.frontend_urls, settings.cors_allow_origin_regex)
     logger.info("Supabase diagnostics: %s", get_supabase_diagnostics())
     yield
+    await close_gemini_client()
     await close_openrouter_client()
 
 
@@ -91,7 +93,8 @@ async def health(request: Request):
         "manual_storage": "supabase_rest_http1",
         "emoji_rush_storage": "supabase_rest_http1",
         "memory_grid_storage": "supabase_rest_http1",
-        "ai_quiz_model": settings.openrouter_model,
+        "ai_quiz_provider": "gemini",
+        "ai_quiz_model": settings.gemini_ai_model,
         "pdf_quiz_model": settings.openrouter_file_model,
         "url_quiz_model": settings.openrouter_url_model,
         "url_quiz_fallback_model": settings.openrouter_url_fallback_model,
