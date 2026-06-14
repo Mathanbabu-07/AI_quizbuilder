@@ -1,3 +1,3 @@
-from app.services.openrouter_service import QuizGenerationSettings, generate_quiz_with_model
+from app.services.gemini_url_service import GeminiUrlGenerationSettings, GeminiUrlService
 
-__all__ = ["QuizGenerationSettings", "generate_quiz_with_model"]
+__all__ = ["GeminiUrlGenerationSettings", "GeminiUrlService"]

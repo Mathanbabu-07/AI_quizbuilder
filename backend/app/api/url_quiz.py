@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import Settings, get_settings
 from app.models.quiz import (
-    GenerateFromFileRequest,
     GenerateFromUrlRequest,
     GenerateFromUrlResponse,
     UrlExtractRequest,
@@ -15,8 +14,8 @@ from app.models.quiz import (
     VerifyQuizRequest,
     VerifyQuizResponse,
 )
+from app.services.gemini_url_service import GeminiUrlGenerationSettings, GeminiUrlService
 from app.services.multiplayer_service import create_persistent_room_async
-from app.services.openrouter_service import QuizGenerationSettings, generate_quiz_with_model
 from app.services.quiz_formatter import quiz_to_storage_dict
 from app.services.quiz_validator import validate_quiz_payload
 from app.services.supabase_service import supabase_service
@@ -69,29 +68,16 @@ async def generate_quiz_from_url(
 ) -> GenerateFromUrlResponse:
     _prune_cache()
     cached = await _get_or_extract(request, settings)
-    generator_request = GenerateFromFileRequest(
-        file_id=request.extraction_id or uuid4().hex,
-        user_prompt=_build_url_instruction(request.user_prompt, cached.url),
-        mode=request.mode,
-        question_count=request.question_count,
-        difficulty=request.difficulty,
-        time_per_question=request.time_per_question,
-        points_per_question=request.points_per_question,
-        host_id=request.host_id,
-        host_name=request.host_name,
-    )
-    generation_settings = QuizGenerationSettings.from_file_request(
-        settings,
-        generator_request,
-        source_type="url",
+    generation_settings = GeminiUrlGenerationSettings.from_request(
+        request,
         source_url=cached.url,
         source_title=cached.title,
     )
-    quiz, model_used, fallback_reason = await _generate_url_quiz_with_fallback(
+    quiz = await GeminiUrlService(settings).generate_quiz(
         cached.text,
         generation_settings,
-        settings,
     )
+    model_used = settings.gemini_url_model
     quiz_id = await supabase_service.save_generated_quiz_async(
         title=quiz.title,
         quiz_data=quiz_to_storage_dict(quiz),
@@ -110,9 +96,10 @@ async def generate_quiz_from_url(
         quiz=quiz,
         meta={
             "model": model_used,
-            "primary_model": settings.openrouter_url_model,
-            "fallback_model": settings.openrouter_url_fallback_model,
-            "fallback_reason": fallback_reason,
+            "primary_model": model_used,
+            "fallback_model": None,
+            "fallback_reason": None,
+            "provider": "gemini",
             "source_type": "url",
             "source_url": cached.url,
             "source_title": cached.title,
@@ -170,48 +157,6 @@ async def _get_or_extract(request: GenerateFromUrlRequest, settings: Settings) -
     )
     _url_cache[uuid4().hex] = cached
     return cached
-
-
-def _build_url_instruction(user_prompt: str | None, url: str) -> str:
-    base = f"Source is a webpage URL: {url}. Generate questions only from the extracted page content."
-    if user_prompt and user_prompt.strip():
-        return f"{base}\nHost instructions: {user_prompt.strip()}"
-    return base
-
-
-async def _generate_url_quiz_with_fallback(
-    source_text: str,
-    generation_settings: QuizGenerationSettings,
-    settings: Settings,
-):
-    try:
-        quiz = await generate_quiz_with_model(
-            settings.openrouter_url_model,
-            source_text,
-            generation_settings,
-        )
-        return quiz, settings.openrouter_url_model, None
-    except HTTPException as exc:
-        if (
-            exc.status_code not in {status.HTTP_429_TOO_MANY_REQUESTS, status.HTTP_500_INTERNAL_SERVER_ERROR, status.HTTP_502_BAD_GATEWAY, status.HTTP_503_SERVICE_UNAVAILABLE, status.HTTP_504_GATEWAY_TIMEOUT}
-            or not settings.openrouter_url_fallback_model
-            or settings.openrouter_url_fallback_model == settings.openrouter_url_model
-        ):
-            raise
-
-        logger.warning(
-            "URL primary model failed; retrying fallback primary=%s fallback=%s status=%s detail=%s",
-            settings.openrouter_url_model,
-            settings.openrouter_url_fallback_model,
-            exc.status_code,
-            exc.detail,
-        )
-        quiz = await generate_quiz_with_model(
-            settings.openrouter_url_fallback_model,
-            source_text,
-            generation_settings,
-        )
-        return quiz, settings.openrouter_url_fallback_model, str(exc.detail)
 
 
 def _prune_cache() -> None:

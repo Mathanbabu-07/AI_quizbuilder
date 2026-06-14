@@ -18,10 +18,10 @@ Optional performance settings:
 ```env
 GEMINI_API_KEY=
 GEMINI_AI_MODEL=gemini-3.1-flash-lite
+GEMINI_URL_MODEL=gemini-2.5-flash
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_API_KEY=
 OPENROUTER_PDF_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
-OPENROUTER_URL_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 SCRAPEDO_API_KEY=
 SCRAPEDO_BASE_URL=http://api.scrape.do/
 PDF_MAX_UPLOAD_MB=10
@@ -61,9 +61,9 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 The text AI quiz endpoint calls Gemini using `GEMINI_API_KEY` and `GEMINI_AI_MODEL`, defaulting to `gemini-3.1-flash-lite`.
 The PDF/PPT file generation endpoint uses `OPENROUTER_PDF_MODEL`, defaulting to `nvidia/nemotron-3-nano-30b-a3b:free`.
-The URL quiz endpoint extracts pages through Scrape.do and uses `OPENROUTER_URL_MODEL`, defaulting to `nvidia/nemotron-3-super-120b-a12b:free`.
+The URL quiz endpoint extracts pages through Scrape.do and generates validated quizzes through `GEMINI_URL_MODEL`, defaulting to `gemini-2.5-flash`.
 Gemini and OpenRouter calls are async, pooled, validated as structured quiz JSON, and briefly cached for identical generation requests.
-AI prompt generation uses Gemini structured JSON output with up to 3 validation-aware attempts. PDF/PPT and URL source generation keep their existing OpenRouter safety timeouts and retries for large extracted sources.
+AI prompt and URL generation use Gemini structured JSON output with up to 3 validation-aware attempts. PDF/PPT generation keeps its existing OpenRouter safety timeout and retries.
 
 PDF upload extraction uses PyMuPDF. PPTX extraction uses python-pptx. Run `supabase/ai_file_quiz_schema.sql`
 to add generated quiz and room persistence tables.
